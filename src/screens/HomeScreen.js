@@ -39,7 +39,6 @@ import {
   addDays,
 } from "date-fns";
 
-import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 
 const MONTHS = [
@@ -83,6 +82,7 @@ function CalendarModal({
   const textColor = isDarkMode ? "#fff" : "#000";
   const subColor = "#666";
   const activeBlue = "#0081db";
+  const today = new Date();
 
   return (
     <Modal
@@ -92,13 +92,6 @@ function CalendarModal({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        {/* 1. The Blur Effect (Covers entire screen) */}
-        <BlurView
-          intensity={isDarkMode ? 40 : 80}
-          tint={isDarkMode ? "dark" : "light"}
-          style={StyleSheet.absoluteFill}
-        />
-
         {/* 2. The Dismissible Overlay (The area above the sheet that closes it) */}
         <Pressable style={styles.fullCloseOverlay} onPress={onClose} />
 
@@ -136,20 +129,30 @@ function CalendarModal({
           <View style={styles.monthGrid}>
             {MONTHS.map((m, i) => {
               const isActive = i === month;
+              const isFutureMonth =
+                year > getYear(today) ||
+                (year === getYear(today) && i > getMonth(today));
               return (
                 <View key={m} style={styles.monthColumn}>
                   <TouchableOpacity
-                    onPress={() => setViewDate(setMonth(viewDate, i))}
+                    onPress={() => {
+                      if (isFutureMonth) return;
+                      setViewDate(setMonth(viewDate, i));
+                    }}
+                    activeOpacity={isFutureMonth ? 1 : 0.7}
                     style={[
                       styles.monthPill,
-                      isActive && {
-                        backgroundColor: isDarkMode ? "#222" : "#f0f0f0",
-                      },
+                      isActive &&
+                        !isFutureMonth && {
+                          backgroundColor: isDarkMode ? "#222" : "#f0f0f0",
+                        },
+                      isFutureMonth && { opacity: 0.25 },
                     ]}
                   >
                     <Text
                       style={{
-                        color: isActive ? activeBlue : subColor,
+                        color:
+                          isActive && !isFutureMonth ? activeBlue : subColor,
                         fontWeight: "bold",
                         fontSize: 15,
                       }}
@@ -176,33 +179,39 @@ function CalendarModal({
           {/* Day Grid */}
           <View style={styles.dayGrid}>
             {calendarDays.map((day, i) => {
-              const today = new Date();
               const inMonth = isSameMonth(day, viewDate);
               const isSelected = isSameDay(day, currentDate);
               const isToday = isSameDay(day, today);
+
+              const isFuture = day > today;
 
               return (
                 <View key={i} style={styles.dayColumn}>
                   {inMonth ? (
                     <TouchableOpacity
                       onPress={() => {
+                        if (isFuture) return;
                         onSelectDate(day);
                         onClose();
                       }}
+                      activeOpacity={isFuture ? 1 : 0.7}
                       style={[
                         styles.dayCell,
-                        isSelected && { backgroundColor: activeBlue },
+                        isSelected &&
+                          !isFuture && { backgroundColor: activeBlue },
+                        isFuture && { opacity: 0.25 },
                       ]}
                     >
                       <Text
                         style={[
                           styles.dayNum,
                           {
-                            color: isSelected
-                              ? "#fff"
-                              : isToday
-                                ? activeBlue
-                                : textColor,
+                            color:
+                              isSelected && !isFuture
+                                ? "#fff"
+                                : isToday
+                                  ? activeBlue
+                                  : textColor,
                           },
                         ]}
                       >
@@ -420,18 +429,11 @@ export default function HomeScreen() {
       {/* Full-screen Search Overlay with Blur */}
       {isSearchOpen && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 99 }]}>
-          <BlurView
-            intensity={isDarkMode ? 80 : 90}
-            tint={isDarkMode ? "dark" : "light"}
-            style={StyleSheet.absoluteFill}
-          />
           <View
             style={[
               styles.searchActiveContainer,
               {
-                backgroundColor: isDarkMode
-                  ? "rgba(18,18,18,0.8)"
-                  : "rgba(252,252,252,0.8)",
+                backgroundColor: isDarkMode ? "#121212" : "#fcfcfc",
               },
             ]}
           >
