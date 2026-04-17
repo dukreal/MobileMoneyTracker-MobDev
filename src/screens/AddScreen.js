@@ -76,15 +76,34 @@ export default function AddScreen({ navigation }) {
   const pickImage = async () => {
     if (images.length >= 3)
       return Alert.alert("Limit Reached", "Max 3 images.");
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], // FIXED MEDIA TYPES
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-    });
-    if (!result.canceled) {
-      setImages([...images, result.assets[0].uri]);
-    }
+    Alert.alert("Add Photo", "Choose a source", [
+      {
+        text: "Camera",
+        onPress: async () => {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== "granted") return Alert.alert("Permission Denied", "Allow camera access.");
+          let result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.5,
+          });
+          if (!result.canceled) setImages([...images, result.assets[0].uri]);
+        },
+      },
+      {
+        text: "Photos",
+        onPress: async () => {
+          let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.5,
+          });
+          if (!result.canceled) setImages([...images, result.assets[0].uri]);
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   const uploadImagesToStorage = async (userId) => {
@@ -251,43 +270,88 @@ export default function AddScreen({ navigation }) {
           <View style={styles.utilRow}>
             <TouchableOpacity
               onPress={handleGetLocation}
-              style={[styles.utilBtn, { backgroundColor: theme.card }]}
+              style={[
+                styles.utilBtn,
+                {
+                  backgroundColor: theme.card,
+                  justifyContent: "space-between",
+                  flex: 1,
+                },
+              ]}
             >
-              <Ionicons
-                name="location"
-                size={18}
-                color={location ? "#4A90E2" : theme.placeholder}
-              />
-              <Text style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}>
-                {fetchingLoc ? "..." : location ? "Tagged" : "Location"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={pickImage}
-              style={[styles.utilBtn, { backgroundColor: theme.card }]}
-            >
-              <Ionicons
-                name="camera"
-                size={18}
-                color={images.length > 0 ? "#4A90E2" : theme.placeholder}
-              />
-              <Text style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}>
-                {images.length}/3 Photos
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons
+                  name="location"
+                  size={18}
+                  color={location ? "#4A90E2" : theme.placeholder}
+                />
+                <Text
+                  style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}
+                >
+                  Location
+                </Text>
+              </View>
+              {location || fetchingLoc ? (
+                <Text
+                  style={{ color: "#4A90E2", fontSize: 11, maxWidth: "50%" }}
+                  numberOfLines={1}
+                >
+                  {fetchingLoc ? "Fetching..." : location.name}
+                </Text>
+              ) : null}
             </TouchableOpacity>
           </View>
+          <Text
+            style={{
+              color: theme.placeholder,
+              fontSize: 12,
+              marginTop: 12,
+              marginBottom: 6,
+            }}
+          >
+            {images.length}/3 Photos (optional)
+          </Text>
           <View style={styles.imagePreviewRow}>
-            {images.map((uri, i) => (
+            {[0, 1, 2].map((i) => (
               <View key={i}>
-                <Image source={{ uri }} style={styles.previewImage} />
-                <TouchableOpacity
-                  style={styles.removeImg}
-                  onPress={() =>
-                    setImages(images.filter((_, idx) => idx !== i))
-                  }
-                >
-                  <Ionicons name="close-circle" size={20} color="red" />
-                </TouchableOpacity>
+                {images[i] ? (
+                  <View>
+                    <Image
+                      source={{ uri: images[i] }}
+                      style={styles.previewImage}
+                    />
+                    <TouchableOpacity
+                      style={styles.removeImg}
+                      onPress={() =>
+                        setImages(images.filter((_, idx) => idx !== i))
+                      }
+                    >
+                      <Ionicons name="close-circle" size={20} color="red" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={pickImage}
+                    style={[
+                      styles.previewImage,
+                      {
+                        backgroundColor: isDarkMode ? "#2a2a2a" : "#f0f0f0",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? "#333" : "#ddd",
+                        borderStyle: "dashed",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name="add"
+                      size={24}
+                      color={isDarkMode ? "#555" : "#ccc"}
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -375,13 +439,13 @@ const styles = StyleSheet.create({
   subItem: { padding: 8, paddingHorizontal: 14, borderRadius: 15 },
   activeSub: { backgroundColor: "#4A90E2" },
   section: { marginTop: 10, paddingTop: 15, borderTopWidth: 1 },
-  utilRow: { flexDirection: "row", justifyContent: "space-between" },
+  utilRow: { flexDirection: "row" },
   utilBtn: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderRadius: 12,
-    flex: 0.48,
+    flex: 1,
   },
   imagePreviewRow: { flexDirection: "row", marginTop: 15, gap: 10 },
   previewImage: { width: 70, height: 70, borderRadius: 10 },
