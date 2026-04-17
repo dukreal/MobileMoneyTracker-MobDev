@@ -128,10 +128,8 @@ export default function AddScreen({ navigation }) {
         },
       ]);
       if (error) throw error;
-      Alert.alert("Success", "Record added!");
       resetFields();
-
-      navigation.navigate("Home");
+      navigation.navigate("Home", { selectedDate: new Date().toISOString() });
     } catch (err) {
       Alert.alert("Save Failed", err.message);
     } finally {

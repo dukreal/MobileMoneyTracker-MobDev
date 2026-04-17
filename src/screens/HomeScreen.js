@@ -38,6 +38,7 @@ import {
   startOfDay,
   startOfWeek,
   endOfWeek,
+  isAfter,
 } from "date-fns";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -57,7 +58,7 @@ const MONTHS = [
   "Dec",
 ];
 
-// --- CALENDAR MODAL COMPONENT ---
+// --- 1. CALENDAR MODAL ---
 function CalendarModal({
   visible,
   onClose,
@@ -66,13 +67,14 @@ function CalendarModal({
   isDarkMode,
 }) {
   const [viewDate, setViewDate] = useState(currentDate);
-
   useEffect(() => {
     if (visible) setViewDate(currentDate);
   }, [visible, currentDate]);
 
+  const today = startOfDay(new Date());
   const year = getYear(viewDate);
   const month = getMonth(viewDate);
+  const currentYear = getYear(today);
 
   const calendarDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 0 });
@@ -80,10 +82,15 @@ function CalendarModal({
     return eachDayOfInterval({ start, end });
   }, [viewDate]);
 
+  const isFutureDay = (day) => isAfter(startOfDay(day), today);
+  const isFutureMonth = (monthIndex) => {
+    const testDate = setMonth(new Date(year, 0, 1), monthIndex);
+    return isAfter(startOfMonth(testDate), startOfMonth(today));
+  };
+  const isFutureYear = year > currentYear;
+
   const textColor = isDarkMode ? "#fff" : "#000";
-  const subColor = "#666";
   const activeBlue = "#0081db";
-  const today = new Date();
 
   return (
     <Modal
@@ -115,39 +122,43 @@ function CalendarModal({
               {year}
             </Text>
             <TouchableOpacity
-              onPress={() => setViewDate(addYears(viewDate, 1))}
+              onPress={() =>
+                !isFutureYear && setViewDate(addYears(viewDate, 1))
+              }
+              disabled={isFutureYear}
             >
-              <Ionicons name="chevron-forward" size={24} color={textColor} />
+              <Ionicons
+                name="chevron-forward"
+                size={24}
+                color={isFutureYear ? "#444" : textColor}
+              />
             </TouchableOpacity>
           </View>
-
           <View style={styles.monthGrid}>
             {MONTHS.map((m, i) => {
-              const isActive = i === month;
-              const isFutureMonth =
-                year > getYear(today) ||
-                (year === getYear(today) && i > getMonth(today));
+              const futureMonth = isFutureMonth(i);
               return (
                 <View key={m} style={styles.monthColumn}>
                   <TouchableOpacity
-                    onPress={() => {
-                      if (!isFutureMonth) setViewDate(setMonth(viewDate, i));
-                    }}
+                    onPress={() =>
+                      !futureMonth && setViewDate(setMonth(viewDate, i))
+                    }
+                    disabled={futureMonth}
                     style={[
                       styles.monthPill,
-                      isActive &&
-                        !isFutureMonth && {
-                          backgroundColor: isDarkMode ? "#222" : "#f0f0f0",
-                        },
-                      isFutureMonth && { opacity: 0.25 },
+                      i === month && {
+                        backgroundColor: isDarkMode ? "#222" : "#f0f0f0",
+                      },
                     ]}
                   >
                     <Text
                       style={{
-                        color:
-                          isActive && !isFutureMonth ? activeBlue : subColor,
+                        color: futureMonth
+                          ? "#444"
+                          : i === month && year === getYear(today)
+                            ? activeBlue
+                            : "#666",
                         fontWeight: "bold",
-                        fontSize: 15,
                       }}
                     >
                       {m}
@@ -158,44 +169,35 @@ function CalendarModal({
             })}
           </View>
           <View style={styles.divider} />
-          <View style={styles.weekRow}>
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <Text key={d} style={[styles.weekLabel, { color: subColor }]}>
-                {d}
-              </Text>
-            ))}
-          </View>
           <View style={styles.dayGrid}>
             {calendarDays.map((day, i) => {
-              const inMonth = isSameMonth(day, viewDate);
-              const isSelected = isSameDay(day, currentDate);
-              const isToday = isSameDay(day, today);
-              const isFuture = day > today;
+              const future = isFutureDay(day);
               return (
                 <View key={i} style={styles.dayColumn}>
-                  {inMonth ? (
+                  {isSameMonth(day, viewDate) ? (
                     <TouchableOpacity
                       onPress={() => {
-                        if (!isFuture) {
-                          onSelectDate(day);
-                          onClose();
-                        }
+                        if (future) return;
+                        onSelectDate(day);
+                        onClose();
                       }}
+                      disabled={future}
                       style={[
                         styles.dayCell,
-                        isSelected &&
-                          !isFuture && { backgroundColor: activeBlue },
-                        isFuture && { opacity: 0.25 },
+                        isSameDay(day, currentDate) && {
+                          backgroundColor: activeBlue,
+                        },
                       ]}
                     >
                       <Text
                         style={[
                           styles.dayNum,
                           {
-                            color:
-                              isSelected && !isFuture
+                            color: future
+                              ? "#444"
+                              : isSameDay(day, currentDate)
                                 ? "#fff"
-                                : isToday
+                                : isSameDay(day, today)
                                   ? activeBlue
                                   : textColor,
                           },
@@ -218,17 +220,45 @@ function CalendarModal({
   );
 }
 
-function TransactionItem({ item, theme, currency, navigation }) {
+// --- 2. TRANSACTION ITEM ---
+function TransactionItem({
+  item,
+  index,
+  theme,
+  currency,
+  isGuest,
+  navigation,
+  isSearchOpen,
+}) {
   const isExpense = item.type === "expense";
-
+  if (isGuest && index > 7 && !isSearchOpen) {
+    return (
+      <View
+        style={[
+          styles.txCard,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+            borderStyle: "dashed",
+          },
+        ]}
+      >
+        <Ionicons name="lock-closed" size={18} color={theme.subText} />
+        <Text
+          style={{ marginLeft: 10, color: theme.subText, fontWeight: "bold" }}
+        >
+          Login for full history
+        </Text>
+      </View>
+    );
+  }
   return (
     <TouchableOpacity
+      activeOpacity={0.7}
       style={[
         styles.txCard,
         { backgroundColor: theme.card, borderColor: theme.border },
       ]}
-      // We use "Details" because that is the name in App.js
-      // We pass { item } because DetailsScreen.js expects route.params.item
       onPress={() => navigation.navigate("Details", { item })}
     >
       <View
@@ -248,84 +278,73 @@ function TransactionItem({ item, theme, currency, navigation }) {
           color={isExpense ? "#ff3b30" : "#34c759"}
         />
       </View>
-
       <View style={{ flex: 1, marginLeft: 12 }}>
-        {/* CATEGORY (Bold Title) */}
         <Text style={[styles.txTitle, { color: theme.text }]}>
           {item.sub_category || "Uncategorized"}
         </Text>
-
-        {/* TIME - NOTE (Subtext) */}
         <Text
           style={[styles.txNote, { color: theme.subText }]}
           numberOfLines={1}
         >
-          {/* This line adds the time */}
           {item.created_at ? format(new Date(item.created_at), "h:mm a") : ""}
-          {/* This line adds the bullet and the note if it exists */}
           {item.notes ? ` • ${item.notes}` : ""}
         </Text>
       </View>
-
-      <View style={{ alignItems: "flex-end" }}>
-        <Text
-          style={[
-            styles.txAmount,
-            { color: isExpense ? "#ff3b30" : "#34c759" },
-          ]}
-        >
-          {isExpense ? "-" : "+"}
-          {currency}
-          {item.amount.toFixed(2)}
-        </Text>
-      </View>
+      <Text
+        style={[styles.txAmount, { color: isExpense ? "#ff3b30" : "#34c759" }]}
+      >
+        {isExpense ? "-" : "+"}
+        {currency}
+        {item.amount.toFixed(2)}
+      </Text>
     </TouchableOpacity>
   );
 }
 
-// --- MAIN HOME SCREEN ---
-export default function HomeScreen({ navigation }) {
+// --- 3. MAIN HOME SCREEN ---
+export default function HomeScreen({ navigation, route }) {
+  const { currency, isGuest, isDarkMode, user } = useStore();
+
+  // States
   const [transactions, setTransactions] = useState([]);
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [calendarVisible, setCalendarVisible] = useState(false);
-  const [searchType, setSearchType] = useState("all");
-  const [activeFilter, setActiveFilter] = useState("all");
-
-  // Search date states declared here (before the useMemo that uses them)
+  const [searchType, setSearchType] = useState("all"); // ENSURED THIS EXISTS
   const [searchStartDate, setSearchStartDate] = useState(null);
   const [searchEndDate, setSearchEndDate] = useState(null);
-  const [searchStartCalVisible, setSearchStartCalVisible] = useState(false);
-  const [searchEndCalVisible, setSearchEndCalVisible] = useState(false);
+  const [startCalVisible, setStartCalVisible] = useState(false);
+  const [endCalVisible, setEndCalVisible] = useState(false);
+  const [calendarVisible, setCalendarVisible] = useState(false);
 
-  const { currency, isGuest, isDarkMode, user } = useStore();
   const scrollRef = useRef(null);
   const selectionSource = useRef("system");
-  const { width: SCREEN_WIDTH } = Dimensions.get("window");
   const ITEM_WIDTH = 63;
+  const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-  const daysInMonth = useMemo(() => {
-    return eachDayOfInterval({
-      start: startOfMonth(selectedDate),
-      end: endOfMonth(selectedDate),
-    });
-  }, [selectedDate]);
+  const theme = {
+    bg: isDarkMode ? "#121212" : "#ffffff",
+    card: isDarkMode ? "#1e1e1e" : "#f9f9f9",
+    text: isDarkMode ? "#ffffff" : "#000000",
+    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
+    subText: isDarkMode ? "#888888" : "#8e8e93",
+    chipUnselected: isDarkMode ? "#1a1a1a" : "#f5f5f5",
+  };
 
-  // Auto-scroll logic for horizontal date strip
   useEffect(() => {
-    if (selectionSource.current !== "strip" && scrollRef.current) {
-      const index = daysInMonth.findIndex((day) =>
-        isSameDay(day, selectedDate),
-      );
-      if (index !== -1) {
-        const scrollToX =
-          index * ITEM_WIDTH - SCREEN_WIDTH / 2 + ITEM_WIDTH / 2;
-        scrollRef.current.scrollTo({ x: scrollToX, animated: false });
+    const backAction = () => {
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+        return true;
       }
-    }
-    selectionSource.current = "system";
-  }, [selectedDate, daysInMonth]);
+      return false;
+    };
+    const handler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
+    return () => handler.remove();
+  }, [isSearchOpen]);
 
   const fetchTransactions = useCallback(async () => {
     const { data, error } = await supabase
@@ -333,103 +352,84 @@ export default function HomeScreen({ navigation }) {
       .select("*")
       .eq("user_id", user?.id)
       .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setTransactions(data);
-    }
+    if (!error && data) setTransactions(data);
   }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
       fetchTransactions();
-    }, [fetchTransactions]),
+      // If navigated from AddScreen with a date, jump to it
+      if (route?.params?.selectedDate) {
+        const incoming = startOfDay(new Date(route.params.selectedDate));
+        selectionSource.current = "modal";
+        setSelectedDate(incoming);
+      }
+    }, [fetchTransactions, route?.params?.selectedDate]),
   );
 
-  // Date/Type Filter for Main List
+  // Auto-scroll
+  const daysInMonth = useMemo(
+    () =>
+      eachDayOfInterval({
+        start: startOfMonth(selectedDate),
+        end: endOfMonth(selectedDate),
+      }),
+    [selectedDate],
+  );
+  useEffect(() => {
+    if (selectionSource.current !== "strip" && scrollRef.current) {
+      const index = daysInMonth.findIndex((day) =>
+        isSameDay(day, selectedDate),
+      );
+      if (index !== -1)
+        scrollRef.current.scrollTo({
+          x: index * ITEM_WIDTH - SCREEN_WIDTH / 2 + ITEM_WIDTH / 2,
+          animated: false,
+        });
+    }
+    selectionSource.current = "system";
+  }, [selectedDate, daysInMonth]);
+
+  // Combined Filters
+  const searchResults = useMemo(() => {
+    return transactions.filter((t) => {
+      const q = searchQuery.toLowerCase();
+      const txDate = startOfDay(new Date(t.created_at));
+      const matchesSearch =
+        !q ||
+        (searchType === "all" &&
+          (t.sub_category?.toLowerCase().includes(q) ||
+            t.notes?.toLowerCase().includes(q) ||
+            String(t.amount).includes(q))) ||
+        (searchType === "sub_category" &&
+          t.sub_category?.toLowerCase().includes(q)) ||
+        (searchType === "notes" && t.notes?.toLowerCase().includes(q)) ||
+        (searchType === "amount" && String(t.amount).includes(q));
+      const matchesStart =
+        !searchStartDate || txDate >= startOfDay(searchStartDate);
+      const matchesEnd = !searchEndDate || txDate <= startOfDay(searchEndDate);
+      return matchesSearch && matchesStart && matchesEnd;
+    });
+  }, [transactions, searchQuery, searchType, searchStartDate, searchEndDate]);
+
   const filteredTransactions = useMemo(
     () =>
-      transactions.filter((t) => {
-        const matchesDate = isSameDay(new Date(t.created_at), selectedDate);
-        const matchesFilter = activeFilter === "all" || t.type === activeFilter;
-        return matchesDate && matchesFilter;
-      }),
-    [transactions, selectedDate, activeFilter],
+      transactions.filter((t) =>
+        isSameDay(new Date(t.created_at), selectedDate),
+      ),
+    [transactions, selectedDate],
   );
-
-  // Search Results Filter
-  const searchResults = useMemo(
-    () =>
-      transactions.filter((t) => {
-        const q = searchQuery.toLowerCase();
-        const txDate = startOfDay(new Date(t.created_at));
-        const matchesSearch =
-          !q ||
-          ((searchType === "all" || searchType === "sub_category") &&
-            t.sub_category?.toLowerCase().includes(q)) ||
-          ((searchType === "all" || searchType === "notes") &&
-            t.notes?.toLowerCase().includes(q)) ||
-          ((searchType === "all" || searchType === "amount") &&
-            String(t.amount).includes(q));
-
-        const matchesStart = searchStartDate
-          ? txDate >= startOfDay(searchStartDate)
-          : true;
-        const matchesEnd = searchEndDate
-          ? txDate <= startOfDay(searchEndDate)
-          : true;
-        return matchesSearch && matchesStart && matchesEnd;
-      }),
-    [transactions, searchQuery, searchType, searchStartDate, searchEndDate],
-  );
-
-  useEffect(() => {
-    const backAction = () => {
-      if (isSearchOpen) {
-        setIsSearchOpen(false);
-        setSearchQuery("");
-        return true;
-      }
-
-      return false;
-    };
-
-    // Add the listener
-    const backHandler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction,
-    );
-
-    return () => backHandler.remove();
-  }, [isSearchOpen]);
-
-  const income = useMemo(
-    () =>
-      filteredTransactions
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0),
-    [filteredTransactions],
-  );
-  const expense = useMemo(
-    () =>
-      filteredTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0),
-    [filteredTransactions],
-  );
-
-  // Unified Theme Colors
-  const theme = {
-    bg: isDarkMode ? "#121212" : "#ffffff",
-    card: isDarkMode ? "#1e1e1e" : "#f9f9f9",
-    text: isDarkMode ? "#ffffff" : "#000000",
-    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
-    subText: isDarkMode ? "#888888" : "#8e8e93",
-  };
+  const income = filteredTransactions
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + t.amount, 0);
+  const expense = filteredTransactions
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + t.amount, 0);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      {/* HEADER SECTION */}
-      <View style={[styles.headerContainer, { backgroundColor: theme.bg }]}>
+      {/* HEADER */}
+      <View style={styles.headerContainer}>
         <View style={styles.headerMainRow}>
           {!isSearchOpen && (
             <TouchableOpacity
@@ -452,7 +452,6 @@ export default function HomeScreen({ navigation }) {
               </View>
             </TouchableOpacity>
           )}
-
           {!isSearchOpen && (
             <View style={styles.headerIcons}>
               <TouchableOpacity
@@ -464,24 +463,12 @@ export default function HomeScreen({ navigation }) {
               >
                 <Ionicons name="search" size={20} color={theme.text} />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.circleIconBtn,
-                  { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-                ]}
-              >
-                <Ionicons
-                  name="notifications-outline"
-                  size={20}
-                  color={theme.text}
-                />
-              </TouchableOpacity>
             </View>
           )}
         </View>
       </View>
 
-      {/* FULL SCREEN SEARCH OVERLAY */}
+      {/* SEARCH OVERLAY */}
       {isSearchOpen && (
         <View
           style={[
@@ -499,138 +486,209 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="search" size={18} color="#888" />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder={`Search by ${searchType === "all" ? "anything" : searchType}...`}
+                placeholder="Search..."
                 placeholderTextColor="#666"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoFocus
               />
-              <TouchableOpacity
-                onPress={() => {
-                  setIsSearchOpen(false);
-                  setSearchQuery("");
-                }}
-              >
+              <TouchableOpacity onPress={() => setIsSearchOpen(false)}>
                 <Ionicons name="close-circle" size={24} color="#888" />
               </TouchableOpacity>
             </View>
 
-            {/* SEARCH FILTERS */}
-            <View style={styles.searchTypeRow}>
-              {["all", "Category", "Notes", "Amount"].map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  onPress={() => setSearchType(type)}
-                  style={[
-                    styles.searchTypeChip,
-                    searchType === type && {
-                      backgroundColor: isDarkMode ? "#fff" : "#000",
-                    },
-                  ]}
-                >
-                  <Text
+            {/* MODERN FILTER CHIPS */}
+            <View style={styles.chipContainer}>
+              {[
+                { id: "all", label: "All", icon: "search-outline" },
+                {
+                  id: "sub_category",
+                  label: "Category",
+                  icon: "pricetag-outline",
+                },
+                { id: "notes", label: "Notes", icon: "document-text-outline" },
+                { id: "amount", label: "Amount", icon: "cash-outline" },
+              ].map((item) => {
+                const isActive = searchType === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => setSearchType(item.id)}
                     style={[
-                      styles.searchTypeChipText,
+                      styles.searchTypeChip,
                       {
-                        color:
-                          searchType === type
+                        backgroundColor: isActive
+                          ? isDarkMode
+                            ? "#fff"
+                            : "#000"
+                          : theme.chipUnselected,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={item.icon}
+                      size={14}
+                      color={isActive ? (isDarkMode ? "#000" : "#fff") : "#888"}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text
+                      style={[
+                        styles.searchTypeChipText,
+                        {
+                          color: isActive
                             ? isDarkMode
                               ? "#000"
                               : "#fff"
                             : "#888",
-                      },
-                    ]}
-                  >
-                    {type === "all" ? "All" : type.replace("_", " ")}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                        },
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            {/* SEARCH RESULTS */}
+            {/* DATE RANGE */}
+            <View style={styles.dateRangeRow}>
+              <TouchableOpacity
+                onPress={() => setStartCalVisible(true)}
+                style={[
+                  styles.datePickerBtn,
+                  { backgroundColor: theme.card, borderColor: theme.border },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: theme.subText,
+                    fontSize: 10,
+                    fontWeight: "bold",
+                  }}
+                >
+                  FROM
+                </Text>
+                <Text style={{ color: theme.text, fontWeight: "700" }}>
+                  {searchStartDate ? format(searchStartDate, "MMM d") : "Any"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setEndCalVisible(true)}
+                style={[
+                  styles.datePickerBtn,
+                  { backgroundColor: theme.card, borderColor: theme.border },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: theme.subText,
+                    fontSize: 10,
+                    fontWeight: "bold",
+                  }}
+                >
+                  TO
+                </Text>
+                <Text style={{ color: theme.text, fontWeight: "700" }}>
+                  {searchEndDate ? format(searchEndDate, "MMM d") : "Any"}
+                </Text>
+              </TouchableOpacity>
+              {(searchStartDate || searchEndDate) && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchStartDate(null);
+                    setSearchEndDate(null);
+                  }}
+                >
+                  <Ionicons name="refresh-circle" size={34} color="#888" />
+                </TouchableOpacity>
+              )}
+            </View>
+
             <FlatList
               data={searchResults}
               keyExtractor={(item) => item.id}
-              style={{ marginTop: 10 }}
               renderItem={({ item, index }) => (
                 <TransactionItem
                   item={item}
                   index={index}
                   theme={theme}
                   currency={currency}
-                  isGuest={isGuest}
-                  isSearchOpen={isSearchOpen}
                   navigation={navigation}
+                  isSearchOpen={true}
                 />
               )}
               ListEmptyComponent={
-                <Text style={[styles.emptyText, { marginTop: 40 }]}>
-                  No results found
-                </Text>
+                <View style={styles.emptyContainer}>
+                  <Text style={{ color: theme.subText }}>
+                    {searchQuery ? "No results" : "Start typing to search..."}
+                  </Text>
+                </View>
               }
             />
           </View>
         </View>
       )}
 
-      {/* MAIN SCREEN DATE STRIP */}
-      <View style={[styles.dateStrip, { borderColor: theme.border }]}>
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-        >
-          {daysInMonth.map((day, index) => {
-            const isSelected = isSameDay(day, selectedDate);
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dateItem,
-                  isSelected && {
-                    backgroundColor: isDarkMode ? "#fff" : "#000",
-                  },
-                ]}
-                onPress={() => {
-                  selectionSource.current = "strip";
-                  setSelectedDate(day);
-                }}
-              >
-                <Text
+      {/* MAIN VIEW: DATE STRIP */}
+      {!isSearchOpen && (
+        <View style={[styles.dateStrip, { borderColor: theme.border }]}>
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          >
+            {daysInMonth.map((day, index) => {
+              const isSelected = isSameDay(day, selectedDate);
+              return (
+                <TouchableOpacity
+                  key={index}
                   style={[
-                    styles.dateDay,
-                    {
-                      color: isSelected
-                        ? isDarkMode
-                          ? "#000"
-                          : "#fff"
-                        : theme.subText,
+                    styles.dateItem,
+                    isSelected && {
+                      backgroundColor: isDarkMode ? "#fff" : "#000",
                     },
                   ]}
+                  onPress={() => {
+                    selectionSource.current = "strip";
+                    setSelectedDate(day);
+                  }}
                 >
-                  {format(day, "EEE")}
-                </Text>
-                <Text
-                  style={[
-                    styles.dateNum,
-                    {
-                      color: isSelected
-                        ? isDarkMode
-                          ? "#000"
-                          : "#fff"
-                        : theme.text,
-                    },
-                  ]}
-                >
-                  {format(day, "d")}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+                  <Text
+                    style={[
+                      styles.dateDay,
+                      {
+                        color: isSelected
+                          ? isDarkMode
+                            ? "#000"
+                            : "#fff"
+                          : theme.subText,
+                      },
+                    ]}
+                  >
+                    {format(day, "EEE")}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.dateNum,
+                      {
+                        color: isSelected
+                          ? isDarkMode
+                            ? "#000"
+                            : "#fff"
+                          : theme.text,
+                      },
+                    ]}
+                  >
+                    {format(day, "d")}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
-      {/* SUMMARY CARD */}
+      {/* SUMMARY */}
       <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Income</Text>
@@ -655,10 +713,26 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
 
-      {/* MAIN LIST */}
       <FlatList
         data={filteredTransactions}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={
+          filteredTransactions.length === 0
+            ? { flexGrow: 1 }
+            : { paddingBottom: 100 }
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="receipt-outline"
+              size={80}
+              color={isDarkMode ? "#222" : "#e0e0e0"}
+            />
+            <Text style={[styles.emptyText, { color: theme.subText }]}>
+              No records for this day
+            </Text>
+          </View>
+        }
         renderItem={({ item, index }) => (
           <TransactionItem
             item={item}
@@ -666,19 +740,12 @@ export default function HomeScreen({ navigation }) {
             theme={theme}
             currency={currency}
             isGuest={isGuest}
-            isSearchOpen={isSearchOpen}
             navigation={navigation}
+            isSearchOpen={false}
           />
         )}
-        ListEmptyComponent={
-          <Text style={[styles.emptyText, { marginTop: 100 }]}>
-            No records for this day
-          </Text>
-        }
-        contentContainerStyle={{ paddingBottom: 100 }}
       />
 
-      {/* CALENDAR MODAL */}
       <CalendarModal
         visible={calendarVisible}
         onClose={() => setCalendarVisible(false)}
@@ -687,6 +754,20 @@ export default function HomeScreen({ navigation }) {
           selectionSource.current = "modal";
           setSelectedDate(startOfDay(date));
         }}
+        isDarkMode={isDarkMode}
+      />
+      <CalendarModal
+        visible={startCalVisible}
+        onClose={() => setStartCalVisible(false)}
+        currentDate={searchStartDate || new Date()}
+        onSelectDate={setSearchStartDate}
+        isDarkMode={isDarkMode}
+      />
+      <CalendarModal
+        visible={endCalVisible}
+        onClose={() => setEndCalVisible(false)}
+        currentDate={searchEndDate || new Date()}
+        onSelectDate={setSearchEndDate}
         isDarkMode={isDarkMode}
       />
     </View>
@@ -701,9 +782,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
-  yearSubLabel: { fontSize: 14, color: "#777", fontWeight: "700" },
+  yearSubLabel: { fontSize: 13, color: "#777", fontWeight: "700" },
+  monthLargeText: { fontSize: 32, fontWeight: "900", letterSpacing: -0.5 },
   monthDisplayRow: { flexDirection: "row", alignItems: "center" },
-  monthLargeText: { fontSize: 34, fontWeight: "900", letterSpacing: -1 },
   headerIcons: { flexDirection: "row", alignItems: "center" },
   circleIconBtn: {
     width: 40,
@@ -741,11 +822,58 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
   },
-  txIcon: { marginRight: 15 },
   txTitle: { fontWeight: "bold", fontSize: 14 },
   txNote: { fontSize: 12 },
   txAmount: { fontWeight: "bold", fontSize: 16 },
-  emptyText: { textAlign: "center", color: "#666", fontSize: 16 },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 150,
+  },
+  emptyText: {
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: "500",
+    marginTop: 10,
+  },
+  searchActiveContainer: { paddingTop: 55, paddingHorizontal: 20, flex: 1 },
+  searchBarContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 15,
+    paddingHorizontal: 15,
+    height: 52,
+    marginBottom: 15,
+  },
+  searchInput: { flex: 1, fontSize: 16, paddingHorizontal: 10 },
+  chipContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 15,
+  },
+  searchTypeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  searchTypeChipText: { fontSize: 12, fontWeight: "700" },
+  dateRangeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  datePickerBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 15,
+    alignItems: "center",
+    borderWidth: 1,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",
@@ -787,12 +915,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   divider: { height: 1, backgroundColor: "#222", marginVertical: 15 },
-  weekRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 5,
-  },
-  weekLabel: { width: 45, textAlign: "center", fontSize: 13 },
   dayGrid: { flexDirection: "row", flexWrap: "wrap" },
   dayColumn: {
     width: "14.28%",
@@ -801,37 +923,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dayCell: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  dayNum: { fontSize: 18, fontWeight: "700" },
+  dayNum: { fontSize: 16, fontWeight: "700" },
   doneBtn: { alignItems: "center", marginTop: 10 },
   fullCloseOverlay: { ...StyleSheet.absoluteFillObject },
-  searchActiveContainer: {
-    paddingTop: 55,
-    paddingHorizontal: 20,
-    height: "100%",
-  },
-  searchBarContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 15,
-    paddingHorizontal: 15,
-    height: 52,
-  },
-  searchInput: { flex: 1, fontSize: 16, paddingHorizontal: 10 },
-  searchTypeRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 15 },
-  searchTypeChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    marginRight: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#333",
-  },
-  searchTypeChipText: { fontSize: 12, fontWeight: "600" },
 });
