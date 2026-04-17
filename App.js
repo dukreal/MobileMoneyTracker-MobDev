@@ -93,7 +93,7 @@ function MainTabs() {
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ title: "Settings" }}
+        options={{ title: "Profile" }}
       />
     </Tab.Navigator>
   );
@@ -122,6 +122,7 @@ export default function App() {
         <StatusBar
           style={isDarkMode ? "light" : "dark"}
           backgroundColor={bgColor}
+          navigationBarColor={bgColor}
         />
 
         <Stack.Navigator

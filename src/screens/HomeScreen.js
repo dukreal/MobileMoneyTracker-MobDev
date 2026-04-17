@@ -430,6 +430,17 @@ export default function HomeScreen({ navigation, route }) {
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* HEADER */}
       <View style={styles.headerContainer}>
+        {/* Row 1 — App Name */}
+        {!isSearchOpen && (
+          <View style={styles.appNameRow}>
+            <Text style={[styles.appNameText, { color: theme.text }]}>
+              Montra
+            </Text>
+          </View>
+        )}
+
+        {/* Row 2 — Year | Month + Icons */}
+        {/* Row 2 — Year+Month | Icons */}
         <View style={styles.headerMainRow}>
           {!isSearchOpen && (
             <TouchableOpacity
@@ -462,6 +473,19 @@ export default function HomeScreen({ navigation, route }) {
                 ]}
               >
                 <Ionicons name="search" size={20} color={theme.text} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {}}
+                style={[
+                  styles.circleIconBtn,
+                  { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
+                ]}
+              >
+                <Ionicons
+                  name="settings-outline"
+                  size={20}
+                  color={theme.text}
+                />
               </TouchableOpacity>
             </View>
           )}
@@ -777,13 +801,15 @@ export default function HomeScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerContainer: { paddingHorizontal: 20, paddingTop: 55, paddingBottom: 10 },
+  appNameRow: { alignItems: "center", marginBottom: 10 },
+  appNameText: { fontSize: 26, fontWeight: "900", letterSpacing: 0.5 },
   headerMainRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "center",
   },
   yearSubLabel: { fontSize: 13, color: "#777", fontWeight: "700" },
-  monthLargeText: { fontSize: 32, fontWeight: "900", letterSpacing: -0.5 },
+  monthLargeText: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
   monthDisplayRow: { flexDirection: "row", alignItems: "center" },
   headerIcons: { flexDirection: "row", alignItems: "center" },
   circleIconBtn: {

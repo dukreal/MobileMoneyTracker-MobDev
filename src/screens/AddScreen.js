@@ -153,8 +153,20 @@ export default function AddScreen({ navigation }) {
     }, [resetFields]),
   );
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={styles.row}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+      <View style={{ alignItems: "center", paddingTop: 60, paddingBottom: 10 }}>
+        <Text
+          style={{
+            fontSize: 26,
+            fontWeight: "900",
+            letterSpacing: 0.5,
+            color: theme.text,
+          }}
+        >
+          Add
+        </Text>
+      </View>
+      <View style={[styles.row, { paddingHorizontal: 20 }]}>
         <TouchableOpacity
           style={[
             styles.toggle,
@@ -180,113 +192,117 @@ export default function AddScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
       </View>
-      <TextInput
-        style={[styles.amountInput, { color: theme.text }]}
-        placeholder="0.00"
-        placeholderTextColor={theme.placeholder}
-        keyboardType="decimal-pad"
-        value={amount}
-        onChangeText={setAmount}
-      />
-      <Text style={[styles.label, { color: theme.text }]}>Category</Text>
-      <View style={styles.catGrid}>
-        {CATEGORIES[type].map((cat) => (
-          <TouchableOpacity
-            key={cat.name}
-            onPress={() => {
-              setSelectedCat(cat);
-              setSelectedSub(null);
-            }}
-            style={[
-              styles.catItem,
-              { backgroundColor: theme.card },
-              selectedCat?.name === cat.name && {
-                borderColor: cat.color,
-                borderWidth: 2,
-              },
-            ]}
-          >
-            <Ionicons name={cat.icon} size={22} color={cat.color} />
-            <Text style={[styles.catText, { color: theme.text }]}>
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {selectedCat && (
-        <View style={styles.subGrid}>
-          {selectedCat.subs.map((sub) => (
+      <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
+        <TextInput
+          style={[styles.amountInput, { color: theme.text }]}
+          placeholder="0.00"
+          placeholderTextColor={theme.placeholder}
+          keyboardType="decimal-pad"
+          value={amount}
+          onChangeText={setAmount}
+        />
+        <Text style={[styles.label, { color: theme.text }]}>Category</Text>
+        <View style={styles.catGrid}>
+          {CATEGORIES[type].map((cat) => (
             <TouchableOpacity
-              key={sub}
-              onPress={() => setSelectedSub(sub)}
+              key={cat.name}
+              onPress={() => {
+                setSelectedCat(cat);
+                setSelectedSub(null);
+              }}
               style={[
-                styles.subItem,
-                { backgroundColor: isDarkMode ? "#333" : "#eee" },
-                selectedSub === sub && styles.activeSub,
+                styles.catItem,
+                { backgroundColor: theme.card },
+                selectedCat?.name === cat.name && {
+                  borderColor: cat.color,
+                  borderWidth: 2,
+                },
               ]}
             >
-              <Text
-                style={{ color: selectedSub === sub ? "#fff" : theme.text }}
-              >
-                {sub}
+              <Ionicons name={cat.icon} size={22} color={cat.color} />
+              <Text style={[styles.catText, { color: theme.text }]}>
+                {cat.name}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-      )}
-      <View style={[styles.section, { borderTopColor: theme.inputBorder }]}>
-        <View style={styles.utilRow}>
-          <TouchableOpacity
-            onPress={handleGetLocation}
-            style={[styles.utilBtn, { backgroundColor: theme.card }]}
-          >
-            <Ionicons
-              name="location"
-              size={18}
-              color={location ? "#4A90E2" : theme.placeholder}
-            />
-            <Text style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}>
-              {fetchingLoc ? "..." : location ? "Tagged" : "Location"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={pickImage}
-            style={[styles.utilBtn, { backgroundColor: theme.card }]}
-          >
-            <Ionicons
-              name="camera"
-              size={18}
-              color={images.length > 0 ? "#4A90E2" : theme.placeholder}
-            />
-            <Text style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}>
-              {images.length}/3 Photos
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.imagePreviewRow}>
-          {images.map((uri, i) => (
-            <View key={i}>
-              <Image source={{ uri }} style={styles.previewImage} />
+        {selectedCat && (
+          <View style={styles.subGrid}>
+            {selectedCat.subs.map((sub) => (
               <TouchableOpacity
-                style={styles.removeImg}
-                onPress={() => setImages(images.filter((_, idx) => idx !== i))}
+                key={sub}
+                onPress={() => setSelectedSub(sub)}
+                style={[
+                  styles.subItem,
+                  { backgroundColor: isDarkMode ? "#333" : "#eee" },
+                  selectedSub === sub && styles.activeSub,
+                ]}
               >
-                <Ionicons name="close-circle" size={20} color="red" />
+                <Text
+                  style={{ color: selectedSub === sub ? "#fff" : theme.text }}
+                >
+                  {sub}
+                </Text>
               </TouchableOpacity>
-            </View>
-          ))}
+            ))}
+          </View>
+        )}
+        <View style={[styles.section, { borderTopColor: theme.inputBorder }]}>
+          <View style={styles.utilRow}>
+            <TouchableOpacity
+              onPress={handleGetLocation}
+              style={[styles.utilBtn, { backgroundColor: theme.card }]}
+            >
+              <Ionicons
+                name="location"
+                size={18}
+                color={location ? "#4A90E2" : theme.placeholder}
+              />
+              <Text style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}>
+                {fetchingLoc ? "..." : location ? "Tagged" : "Location"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={pickImage}
+              style={[styles.utilBtn, { backgroundColor: theme.card }]}
+            >
+              <Ionicons
+                name="camera"
+                size={18}
+                color={images.length > 0 ? "#4A90E2" : theme.placeholder}
+              />
+              <Text style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}>
+                {images.length}/3 Photos
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.imagePreviewRow}>
+            {images.map((uri, i) => (
+              <View key={i}>
+                <Image source={{ uri }} style={styles.previewImage} />
+                <TouchableOpacity
+                  style={styles.removeImg}
+                  onPress={() =>
+                    setImages(images.filter((_, idx) => idx !== i))
+                  }
+                >
+                  <Ionicons name="close-circle" size={20} color="red" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
-      <TextInput
-        style={[
-          styles.notesInput,
-          { color: theme.text, borderColor: theme.inputBorder },
-        ]}
-        placeholder="Add a note..."
-        placeholderTextColor={theme.placeholder}
-        value={notes}
-        onChangeText={setNotes}
-      />
+        <TextInput
+          style={[
+            styles.notesInput,
+            { color: theme.text, borderColor: theme.inputBorder },
+          ]}
+          placeholder="Add a note..."
+          placeholderTextColor={theme.placeholder}
+          value={notes}
+          onChangeText={setNotes}
+        />
+      </ScrollView>
       <TouchableOpacity
         style={[
           styles.saveButton,
@@ -299,18 +315,21 @@ export default function AddScreen({ navigation }) {
           <ActivityIndicator color={isDarkMode ? "#000" : "#fff"} />
         ) : (
           <Text
-            style={{ color: isDarkMode ? "#000" : "#fff", fontWeight: "bold" }}
+            style={{
+              color: isDarkMode ? "#000" : "#fff",
+              fontWeight: "bold",
+            }}
           >
             Save Transaction
           </Text>
         )}
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 60 },
+  container: { flex: 1, padding: 20, paddingTop: 5 },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -328,25 +347,32 @@ const styles = StyleSheet.create({
   amountInput: {
     fontSize: 44,
     textAlign: "center",
-    marginVertical: 15,
+    marginVertical: 5,
     fontWeight: "bold",
   },
   label: { fontSize: 14, fontWeight: "bold", marginBottom: 10 },
   catGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: 8,
   },
   catItem: {
-    width: "31%",
+    width: "30%",
     padding: 10,
     alignItems: "center",
     borderRadius: 12,
-    marginBottom: 10,
+    marginBottom: 4,
   },
   catText: { fontSize: 10, marginTop: 4, textAlign: "center" },
-  subGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20 },
-  subItem: { padding: 8, borderRadius: 15, marginRight: 8, marginBottom: 8 },
+  subGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 10,
+    marginTop: 4,
+    gap: 8,
+  },
+  subItem: { padding: 8, paddingHorizontal: 14, borderRadius: 15 },
   activeSub: { backgroundColor: "#4A90E2" },
   section: { marginTop: 10, paddingTop: 15, borderTopWidth: 1 },
   utilRow: { flexDirection: "row", justifyContent: "space-between" },
@@ -370,8 +396,8 @@ const styles = StyleSheet.create({
   saveButton: {
     padding: 18,
     borderRadius: 15,
-    marginTop: 25,
+    marginHorizontal: 20,
+    marginVertical: 15,
     alignItems: "center",
-    marginBottom: 60,
   },
 });
