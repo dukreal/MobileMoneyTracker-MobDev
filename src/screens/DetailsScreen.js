@@ -8,15 +8,16 @@ import {
   ScrollView,
   Modal,
   Linking,
-  Alert,
+  Alert, // Added Alert
   Share,
   Pressable,
-  SafeAreaView,
-  StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { useStore } from "../store/useStore";
+import { supabase } from "../supabase/supabaseClient"; // IMPORTANT: Add this import
 
 export default function DetailsScreen({ route, navigation }) {
   const { item } = route.params;
@@ -31,6 +32,35 @@ export default function DetailsScreen({ route, navigation }) {
     card: isDarkMode ? "#1e1e1e" : "#f9f9f9",
     accent: "#0081db",
     border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
+  };
+
+  // --- NEW DELETE LOGIC ---
+  const handleDelete = async () => {
+    Alert.alert(
+      "Delete Record",
+      "Are you sure you want to delete this transaction? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase
+              .from("transactions")
+              .delete()
+              .eq("id", item.id);
+
+            if (error) {
+              Alert.alert("Error", "Could not delete: " + error.message);
+            } else {
+              // goBack() returns to HomeScreen.
+              // HomeScreen's useFocusEffect will automatically refresh the list.
+              navigation.goBack();
+            }
+          },
+        },
+      ],
+    );
   };
 
   const openInMaps = () => {
@@ -50,23 +80,21 @@ export default function DetailsScreen({ route, navigation }) {
   };
 
   return (
-    <View style={[styles.mainWrapper, { backgroundColor: theme.bg }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <SafeAreaView style={[styles.mainWrapper, { backgroundColor: theme.bg }]}>
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
 
-      <SafeAreaView style={{ backgroundColor: theme.bg }}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Ionicons name="chevron-back" size={28} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Transaction Details
-          </Text>
-          <View style={{ width: 45 }} />
-        </View>
-      </SafeAreaView>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()} // Changed to goBack for better animation
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={28} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>
+          Transaction Details
+        </Text>
+        <View style={{ width: 45 }} />
+      </View>
 
       <ScrollView
         style={styles.container}
@@ -92,7 +120,6 @@ export default function DetailsScreen({ route, navigation }) {
               : "0.00"}
           </Text>
 
-          {/* Logic Fix 1: Ensure it returns null, not 0 or undefined */}
           {item.is_edited ? (
             <TouchableOpacity
               onPress={() => setShowHistory(!showHistory)}
@@ -103,7 +130,6 @@ export default function DetailsScreen({ route, navigation }) {
           ) : null}
         </View>
 
-        {/* Logic Fix 2 */}
         {showHistory ? (
           <View
             style={[
@@ -151,7 +177,6 @@ export default function DetailsScreen({ route, navigation }) {
           />
         </View>
 
-        {/* Logic Fix 3: Most likely source of the error (0 returned from length) */}
         {item.image_urls && item.image_urls.length > 0 ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
@@ -196,9 +221,11 @@ export default function DetailsScreen({ route, navigation }) {
           >
             <Ionicons name="create" size={22} color="#fff" />
           </TouchableOpacity>
+
+          {/* UPDATED DELETE BUTTON */}
           <TouchableOpacity
             style={[styles.circleBtn, { backgroundColor: "#e74c3c" }]}
-            onPress={() => navigation.goBack()}
+            onPress={handleDelete}
           >
             <Ionicons name="trash" size={22} color="#fff" />
           </TouchableOpacity>
@@ -220,7 +247,7 @@ export default function DetailsScreen({ route, navigation }) {
           </Pressable>
         </Modal>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

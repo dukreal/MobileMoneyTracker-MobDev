@@ -18,6 +18,7 @@ import {
   Pressable,
   Dimensions,
   Alert,
+  BackHandler,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../supabase/supabaseClient";
@@ -249,17 +250,21 @@ function TransactionItem({ item, theme, currency, navigation }) {
       </View>
 
       <View style={{ flex: 1, marginLeft: 12 }}>
+        {/* CATEGORY (Bold Title) */}
         <Text style={[styles.txTitle, { color: theme.text }]}>
           {item.sub_category || "Uncategorized"}
         </Text>
-        {item.notes ? (
-          <Text
-            style={[styles.txNote, { color: theme.subText }]}
-            numberOfLines={1}
-          >
-            {item.notes}
-          </Text>
-        ) : null}
+
+        {/* TIME - NOTE (Subtext) */}
+        <Text
+          style={[styles.txNote, { color: theme.subText }]}
+          numberOfLines={1}
+        >
+          {/* This line adds the time */}
+          {item.created_at ? format(new Date(item.created_at), "h:mm a") : ""}
+          {/* This line adds the bullet and the note if it exists */}
+          {item.notes ? ` • ${item.notes}` : ""}
+        </Text>
       </View>
 
       <View style={{ alignItems: "flex-end" }}>
@@ -377,6 +382,26 @@ export default function HomeScreen({ navigation }) {
     [transactions, searchQuery, searchType, searchStartDate, searchEndDate],
   );
 
+  useEffect(() => {
+    const backAction = () => {
+      if (isSearchOpen) {
+        setIsSearchOpen(false);
+        setSearchQuery("");
+        return true;
+      }
+
+      return false;
+    };
+
+    // Add the listener
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [isSearchOpen]);
+
   const income = useMemo(
     () =>
       filteredTransactions
@@ -492,7 +517,7 @@ export default function HomeScreen({ navigation }) {
 
             {/* SEARCH FILTERS */}
             <View style={styles.searchTypeRow}>
-              {["all", "sub_category", "notes", "amount"].map((type) => (
+              {["all", "Category", "Notes", "Amount"].map((type) => (
                 <TouchableOpacity
                   key={type}
                   onPress={() => setSearchType(type)}

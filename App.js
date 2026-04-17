@@ -35,7 +35,7 @@ function MainTabs() {
     <Tab.Navigator
       // This property is the MOST important for fixing the white flash.
       // It sets the background of the underlying view that holds the screens.
-      sceneContainerStyle={{ backgroundColor: bgColor }}
+      sceneContainerStyle={{ backgroundColor: "transparent" }}
       screenOptions={({ route }) => ({
         // ICON LOGIC
         tabBarIcon: ({ focused, color, size }) => {
@@ -81,11 +81,7 @@ function MainTabs() {
           headerShown: false, // HomeScreen has its own custom header
         }}
       />
-      <Tab.Screen
-        name="Add"
-        component={AddScreen}
-        options={{ title: "New Transaction" }}
-      />
+      <Tab.Screen name="Add" component={AddScreen} options={{ title: "Add" }} />
       <Tab.Screen
         name="Charts"
         component={ChartsScreen}
@@ -118,7 +114,7 @@ export default function App() {
 
   return (
     // CHANGE 1: Wrap in a View with the theme color
-    <View style={{ flex: 1, backgroundColor: bgColor }}>
+    <View style={{ flex: 1, backgroundColor: bgColor, overflow: "hidden" }}>
       <NavigationContainer theme={MyTheme}>
         <StatusBar
           style={isDarkMode ? "light" : "dark"}
@@ -132,6 +128,10 @@ export default function App() {
             headerStyle: { backgroundColor: isDarkMode ? "#121212" : "#fff" },
             headerTintColor: isDarkMode ? "#fff" : "#000",
             headerShadowVisible: false,
+            freezeOnBlur: false,
+            detachPreviousScreen: false,
+            cardOverlayEnabled: false,
+            cardStyle: { backgroundColor: "transparent" },
           }}
         >
           <Stack.Screen
@@ -143,11 +143,14 @@ export default function App() {
             name="Details"
             component={DetailsScreen}
             options={{
-              headerShown: true,
+              headerShown: false,
               animation: "slide_from_right",
+              animationTypeForReplace: "push",
+              gestureEnabled: false,
               contentStyle: {
                 backgroundColor: isDarkMode ? "#121212" : "#fff",
               },
+              freezeOnBlur: false,
             }}
           />
         </Stack.Navigator>
