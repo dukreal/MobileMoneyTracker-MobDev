@@ -175,24 +175,23 @@ export default function DetailsScreen({ route, navigation }) {
           />
         </View>
 
+        {/* ATTACHMENTS SECTION */}
         {item.image_urls && item.image_urls.length > 0 ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>
               Attachments
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.imageGrid}>
-                {item.image_urls.map((url, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => setFullImage(url)}
-                    activeOpacity={0.8}
-                  >
-                    <Image source={{ uri: url }} style={styles.thumbnail} />
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+            <View style={styles.imageGrid}>
+              {item.image_urls.map((url, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => setFullImage(url)}
+                  activeOpacity={0.8}
+                >
+                  <Image source={{ uri: url }} style={styles.thumbnail} />
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -213,7 +212,7 @@ export default function DetailsScreen({ route, navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.circleBtn, { backgroundColor: "#f39c12" }]}
-            onPress={() => navigation.navigate("EditScreen", { item })} 
+            onPress={() => navigation.navigate("EditScreen", { item })}
           >
             <Ionicons name="create" size={22} color="#fff" />
           </TouchableOpacity>
