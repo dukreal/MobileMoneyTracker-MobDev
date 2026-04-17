@@ -77,10 +77,14 @@ function MainTabs() {
         name="Home"
         component={HomeScreen}
         options={{
-          headerShown: false, // HomeScreen has its own custom header
+          headerShown: false,
         }}
       />
-      <Tab.Screen name="Add" component={AddScreen} options={{ title: "Add" }} />
+      <Tab.Screen
+        name="Add"
+        component={AddScreen}
+        options={{ headerShown: false }}
+      />
       <Tab.Screen
         name="Charts"
         component={ChartsScreen}
@@ -152,7 +156,11 @@ export default function App() {
               freezeOnBlur: false,
             }}
           />
-          <Stack.Screen name="EditScreen" component={EditScreen} options={{ title: 'Edit Transaction' }} />
+          <Stack.Screen
+            name="EditScreen"
+            component={EditScreen}
+            options={{ title: "Edit Transaction" }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </View>

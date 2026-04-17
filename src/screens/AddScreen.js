@@ -156,7 +156,11 @@ export default function AddScreen({ navigation }) {
     <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={styles.row}>
         <TouchableOpacity
-          style={[styles.toggle, type === "expense" && styles.activeExpense]}
+          style={[
+            styles.toggle,
+            { backgroundColor: theme.card },
+            type === "expense" && styles.activeExpense,
+          ]}
           onPress={() => setType("expense")}
         >
           <Text style={{ color: type === "expense" ? "#fff" : theme.text }}>
@@ -164,7 +168,11 @@ export default function AddScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.toggle, type === "income" && styles.activeIncome]}
+          style={[
+            styles.toggle,
+            { backgroundColor: theme.card },
+            type === "income" && styles.activeIncome,
+          ]}
           onPress={() => setType("income")}
         >
           <Text style={{ color: type === "income" ? "#fff" : theme.text }}>
@@ -302,7 +310,7 @@ export default function AddScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, padding: 20, paddingTop: 60 },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -313,7 +321,6 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: "center",
     borderRadius: 10,
-    backgroundColor: "#f0f0f0",
     marginHorizontal: 5,
   },
   activeExpense: { backgroundColor: "#FF6B6B" },
@@ -354,10 +361,11 @@ const styles = StyleSheet.create({
   previewImage: { width: 70, height: 70, borderRadius: 10 },
   removeImg: { position: "absolute", top: -5, right: -5 },
   notesInput: {
-    borderBottomWidth: 1,
-    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
     marginTop: 15,
-    fontSize: 16,
+    fontSize: 15,
   },
   saveButton: {
     padding: 18,
