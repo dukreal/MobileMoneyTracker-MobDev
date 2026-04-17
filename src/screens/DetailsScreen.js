@@ -8,7 +8,7 @@ import {
   ScrollView,
   Modal,
   Linking,
-  Alert, // Added Alert
+  Alert,
   Share,
   Pressable,
 } from "react-native";
@@ -53,8 +53,6 @@ export default function DetailsScreen({ route, navigation }) {
             if (error) {
               Alert.alert("Error", "Could not delete: " + error.message);
             } else {
-              // goBack() returns to HomeScreen.
-              // HomeScreen's useFocusEffect will automatically refresh the list.
               navigation.goBack();
             }
           },
@@ -215,9 +213,7 @@ export default function DetailsScreen({ route, navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.circleBtn, { backgroundColor: "#f39c12" }]}
-            onPress={() =>
-              Alert.alert("Coming Soon", "Edit is not implemented.")
-            }
+            onPress={() => navigation.navigate("EditScreen", { item })} 
           >
             <Ionicons name="create" size={22} color="#fff" />
           </TouchableOpacity>

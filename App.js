@@ -17,8 +17,7 @@ import AddScreen from "./src/screens/AddScreen";
 import ChartsScreen from "./src/screens/ChartsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import DetailsScreen from "./src/screens/DetailsScreen";
-
-// import EditScreen from "./src/screens/EditScreen"; // We will create this next
+import EditScreen from "./src/screens/EditScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator(); // ADDED
@@ -153,6 +152,7 @@ export default function App() {
               freezeOnBlur: false,
             }}
           />
+          <Stack.Screen name="EditScreen" component={EditScreen} options={{ title: 'Edit Transaction' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </View>
