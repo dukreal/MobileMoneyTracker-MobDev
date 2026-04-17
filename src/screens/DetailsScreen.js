@@ -17,7 +17,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { useStore } from "../store/useStore";
-import { supabase } from "../supabase/supabaseClient"; // IMPORTANT: Add this import
+import { supabase } from "../supabase/supabaseClient";
 
 export default function DetailsScreen({ route, navigation }) {
   const { item } = route.params;
@@ -25,20 +25,21 @@ export default function DetailsScreen({ route, navigation }) {
   const [fullImage, setFullImage] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
 
+  const isIncome = item.type === "income";
+
   const theme = {
     bg: isDarkMode ? "#121212" : "#ffffff",
     text: isDarkMode ? "#ffffff" : "#000000",
-    subText: isDarkMode ? "#888888" : "#666666",
-    card: isDarkMode ? "#1e1e1e" : "#f9f9f9",
-    accent: "#0081db",
-    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
+    subText: isDarkMode ? "#888888" : "#999999",
+    card: isDarkMode ? "#1e1e1e" : "#f5f5f5",
+    accent: isIncome ? "#2ECC71" : "#FF6B6B",
+    border: isDarkMode ? "#2c2c2c" : "#eeeeee",
   };
 
-  // --- NEW DELETE LOGIC ---
   const handleDelete = async () => {
     Alert.alert(
       "Delete Record",
-      "Are you sure you want to delete this transaction? This cannot be undone.",
+      "Are you sure you want to delete this transaction?",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -49,7 +50,6 @@ export default function DetailsScreen({ route, navigation }) {
               .from("transactions")
               .delete()
               .eq("id", item.id);
-
             if (error) {
               Alert.alert("Error", "Could not delete: " + error.message);
             } else {
@@ -81,17 +81,38 @@ export default function DetailsScreen({ route, navigation }) {
     <SafeAreaView style={[styles.mainWrapper, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
 
+      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()} // Changed to goBack for better animation
+          onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Ionicons name="chevron-back" size={28} color={theme.text} />
+          <Ionicons name="chevron-back" size={26} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Transaction Details
-        </Text>
-        <View style={{ width: 45 }} />
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.headerActionBtn, { backgroundColor: theme.card }]}
+            onPress={handleShare}
+          >
+            <Ionicons
+              name="share-social-outline"
+              size={20}
+              color={theme.text}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerActionBtn, { backgroundColor: theme.card }]}
+            onPress={() => navigation.navigate("EditScreen", { item })}
+          >
+            <Ionicons name="create-outline" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerActionBtn, { backgroundColor: "#FF6B6B22" }]}
+            onPress={handleDelete}
+          >
+            <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -99,17 +120,17 @@ export default function DetailsScreen({ route, navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        <View style={styles.amountHeader}>
-          <Text
-            style={[
-              styles.typeLabel,
-              { color: item.type === "income" ? "#34c759" : "#ff3b30" },
-            ]}
+        {/* AMOUNT HERO */}
+        <View style={[styles.amountHero, { backgroundColor: theme.card }]}>
+          <View
+            style={[styles.typePill, { backgroundColor: theme.accent + "22" }]}
           >
-            {item.type ? item.type.toUpperCase() : "TRANSACTION"}
-          </Text>
+            <Text style={[styles.typeText, { color: theme.accent }]}>
+              {isIncome ? "↑ INCOME" : "↓ EXPENSE"}
+            </Text>
+          </View>
           <Text style={[styles.mainAmount, { color: theme.text }]}>
-            {item.type === "income" ? "+" : "-"}
+            {isIncome ? "+" : "-"}
             {currency}
             {item.amount
               ? item.amount.toLocaleString(undefined, {
@@ -117,18 +138,33 @@ export default function DetailsScreen({ route, navigation }) {
                 })
               : "0.00"}
           </Text>
+          <Text style={[styles.categoryLabel, { color: theme.subText }]}>
+            {item.parent_category} • {item.sub_category}
+          </Text>
+          <Text style={[styles.dateLabel, { color: theme.subText }]}>
+            {item.created_at
+              ? format(new Date(item.created_at), "EEEE, MMM d yyyy • h:mm a")
+              : "N/A"}
+          </Text>
 
-          {item.is_edited ? (
+          {item.is_edited && (
             <TouchableOpacity
               onPress={() => setShowHistory(!showHistory)}
-              style={styles.editedBadge}
+              style={[styles.editedBadge, { backgroundColor: "#f39c1222" }]}
             >
+              <Ionicons
+                name="time-outline"
+                size={12}
+                color="#f39c12"
+                style={{ marginRight: 4 }}
+              />
               <Text style={styles.editedText}>EDITED • VIEW ORIGINAL</Text>
             </TouchableOpacity>
-          ) : null}
+          )}
         </View>
 
-        {showHistory ? (
+        {/* HISTORY BOX */}
+        {showHistory && (
           <View
             style={[
               styles.historyBox,
@@ -138,127 +174,112 @@ export default function DetailsScreen({ route, navigation }) {
               },
             ]}
           >
-            <Text style={styles.historyTitle}>Original Record:</Text>
-            <Text style={{ color: theme.text }}>
+            <Text style={styles.historyTitle}>Original Record</Text>
+            <Text style={{ color: theme.text, marginTop: 4 }}>
               Amount: {currency}
               {item.original_amount}
             </Text>
-            <Text style={{ color: theme.text }}>
+            <Text style={{ color: theme.text, marginTop: 2 }}>
               Note: {item.original_notes || "None"}
             </Text>
           </View>
-        ) : null}
+        )}
 
-        <View style={[styles.detailsCard, { backgroundColor: theme.card }]}>
-          <DetailRow
-            icon="grid-outline"
-            label="Category"
-            value={item.sub_category || "Uncategorized"}
-            theme={theme}
-          />
-          <DetailRow
-            icon="time-outline"
-            label="Date & Time"
-            value={
-              item.created_at
-                ? format(new Date(item.created_at), "PPP p")
-                : "N/A"
-            }
-            theme={theme}
-          />
-          <DetailRow
-            icon="document-text-outline"
-            label="Notes"
-            value={item.notes || "No notes added"}
-            theme={theme}
-            isLast
-          />
-        </View>
-
-        {/* ATTACHMENTS SECTION */}
-        {item.image_urls && item.image_urls.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>
-              Attachments
-            </Text>
-            <View style={styles.imageGrid}>
-              {item.image_urls.map((url, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => setFullImage(url)}
-                  activeOpacity={0.8}
-                >
-                  <Image source={{ uri: url }} style={styles.thumbnail} />
-                </TouchableOpacity>
-              ))}
+        {/* NOTES */}
+        {item.notes ? (
+          <View
+            style={[
+              styles.notesCard,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <View style={styles.notesHeader}>
+              <Ionicons
+                name="document-text-outline"
+                size={16}
+                color={theme.subText}
+              />
+              <Text style={[styles.notesLabel, { color: theme.subText }]}>
+                NOTE
+              </Text>
             </View>
+            <Text style={[styles.notesValue, { color: theme.text }]}>
+              {item.notes}
+            </Text>
           </View>
         ) : null}
 
-        <View style={styles.actionRow}>
-          {item.latitude ? (
-            <TouchableOpacity
-              style={[styles.circleBtn, { backgroundColor: theme.accent }]}
-              onPress={openInMaps}
+        {/* LOCATION */}
+        {item.latitude ? (
+          <TouchableOpacity
+            onPress={openInMaps}
+            style={[
+              styles.locationCard,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
+            <View
+              style={[
+                styles.locationIconWrap,
+                { backgroundColor: "#0081db22" },
+              ]}
             >
-              <Ionicons name="map" size={22} color="#fff" />
-            </TouchableOpacity>
-          ) : null}
-          <TouchableOpacity
-            style={[styles.circleBtn, { backgroundColor: "#4A90E2" }]}
-            onPress={handleShare}
-          >
-            <Ionicons name="share-social" size={22} color="#fff" />
+              <Ionicons name="location" size={20} color="#0081db" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.locationLabel, { color: theme.subText }]}>
+                LOCATION
+              </Text>
+              <Text style={[styles.locationCoords, { color: theme.text }]}>
+                {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.subText} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.circleBtn, { backgroundColor: "#f39c12" }]}
-            onPress={() => navigation.navigate("EditScreen", { item })}
-          >
-            <Ionicons name="create" size={22} color="#fff" />
-          </TouchableOpacity>
+        ) : null}
 
-          {/* UPDATED DELETE BUTTON */}
-          <TouchableOpacity
-            style={[styles.circleBtn, { backgroundColor: "#e74c3c" }]}
-            onPress={handleDelete}
-          >
-            <Ionicons name="trash" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        <Modal visible={!!fullImage} transparent={true} animationType="fade">
-          <Pressable style={styles.modalBg} onPress={() => setFullImage(null)}>
-            <Image
-              source={{ uri: fullImage }}
-              style={styles.fullImage}
-              resizeMode="contain"
-            />
-            <TouchableOpacity
-              style={styles.closeModalBtn}
-              onPress={() => setFullImage(null)}
-            >
-              <Ionicons name="close" size={30} color="#fff" />
-            </TouchableOpacity>
-          </Pressable>
-        </Modal>
+        {/* ATTACHMENTS */}
+        {item.image_urls && item.image_urls.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+              ATTACHMENTS • {item.image_urls.length}
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {item.image_urls.map((url, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => setFullImage(url)}
+                    activeOpacity={0.85}
+                  >
+                    <Image source={{ uri: url }} style={styles.thumbnail} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
       </ScrollView>
+
+      {/* FULL IMAGE MODAL */}
+      <Modal visible={!!fullImage} transparent animationType="fade">
+        <Pressable style={styles.modalBg} onPress={() => setFullImage(null)}>
+          <Image
+            source={{ uri: fullImage }}
+            style={styles.fullImage}
+            resizeMode="contain"
+          />
+          <TouchableOpacity
+            style={styles.closeModalBtn}
+            onPress={() => setFullImage(null)}
+          >
+            <Ionicons name="close-circle" size={36} color="#fff" />
+          </TouchableOpacity>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
-
-const DetailRow = ({ icon, label, value, theme, isLast }) => (
-  <View style={[styles.detailRow, isLast && { marginBottom: 0 }]}>
-    <View style={styles.iconWrapper}>
-      <Ionicons name={icon} size={22} color={theme.subText} />
-    </View>
-    <View style={styles.detailTextContainer}>
-      <Text style={[styles.detailLabel, { color: theme.subText }]}>
-        {label}
-      </Text>
-      <Text style={[styles.detailValue, { color: theme.text }]}>{value}</Text>
-    </View>
-  </View>
-);
 
 const styles = StyleSheet.create({
   mainWrapper: { flex: 1 },
@@ -266,80 +287,123 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 56,
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   backButton: {
-    width: 45,
-    height: 45,
+    width: 40,
+    height: 40,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: { fontSize: 18, fontWeight: "700" },
+  headerActionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: { flex: 1, paddingHorizontal: 20 },
-  amountHeader: { alignItems: "center", marginTop: 30, marginBottom: 40 },
-  typeLabel: {
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 1.5,
+
+  // AMOUNT HERO
+  amountHero: {
+    borderRadius: 24,
+    padding: 28,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  typePill: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  typeText: { fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
+  mainAmount: {
+    fontSize: 48,
+    fontWeight: "900",
+    letterSpacing: -1,
     marginBottom: 8,
   },
-  mainAmount: { fontSize: 52, fontWeight: "900", letterSpacing: -1 },
+  categoryLabel: { fontSize: 14, fontWeight: "600", marginBottom: 4 },
+  dateLabel: { fontSize: 12, fontWeight: "500" },
   editedBadge: {
-    backgroundColor: "#f39c12",
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    marginTop: 15,
+    marginTop: 14,
   },
-  editedText: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  editedText: { color: "#f39c12", fontSize: 10, fontWeight: "800" },
+
+  // HISTORY
   historyBox: {
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 25,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 14,
     borderWidth: 1,
   },
-  historyTitle: { fontWeight: "bold", color: "#f39c12", marginBottom: 5 },
-  detailsCard: { padding: 25, borderRadius: 30, marginBottom: 30 },
-  detailRow: {
+  historyTitle: { fontWeight: "800", color: "#f39c12", fontSize: 13 },
+
+  // NOTES
+  notesCard: {
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+  },
+  notesHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 25,
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
   },
-  iconWrapper: { width: 30, alignItems: "center", marginTop: 2 },
-  detailTextContainer: { marginLeft: 15, flex: 1 },
-  detailLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 4,
-    textTransform: "uppercase",
-  },
-  detailValue: { fontSize: 16, fontWeight: "500", lineHeight: 22 },
-  section: { marginBottom: 35 },
-  sectionTitle: { fontSize: 18, fontWeight: "800", marginBottom: 15 },
-  imageGrid: { flexDirection: "row", paddingRight: 20 },
-  thumbnail: { width: 100, height: 100, borderRadius: 20, marginRight: 12 },
-  actionRow: {
+  notesLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1 },
+  notesValue: { fontSize: 15, fontWeight: "500", lineHeight: 22 },
+
+  // LOCATION
+  locationCard: {
     flexDirection: "row",
-    justifyContent: "center",
-    gap: 15,
-    marginTop: 10,
+    alignItems: "center",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    gap: 14,
   },
-  circleBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  locationIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 4,
-    shadowOpacity: 0.2,
   },
+  locationLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  locationCoords: { fontSize: 14, fontWeight: "600" },
+
+  // ATTACHMENTS
+  section: { marginBottom: 20 },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  thumbnail: { width: 140, height: 140, borderRadius: 18 },
+
+  // MODAL
   modalBg: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.95)",
+    backgroundColor: "rgba(0,0,0,0.96)",
     justifyContent: "center",
     alignItems: "center",
   },
   fullImage: { width: "100%", height: "80%" },
-  closeModalBtn: { position: "absolute", top: 50, right: 25, padding: 10 },
+  closeModalBtn: { position: "absolute", top: 50, right: 20 },
 });
