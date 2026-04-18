@@ -9,7 +9,9 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  Modal,
 } from "react-native";
+
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as FileSystem from "expo-file-system/legacy"; // FIXED IMPORT
@@ -33,6 +35,7 @@ export default function AddScreen({ navigation }) {
   const [images, setImages] = useState([]);
   const [location, setLocation] = useState(null);
   const [fetchingLoc, setFetchingLoc] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const theme = {
     bg: isDarkMode ? "#121212" : "#fff",
@@ -81,13 +84,13 @@ export default function AddScreen({ navigation }) {
         text: "Camera",
         onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== "granted") return Alert.alert("Permission Denied", "Allow camera access.");
+          if (status !== "granted")
+            return Alert.alert("Permission Denied", "Allow camera access.");
           let result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            aspect: [4, 3],
+            allowsEditing: false,
             quality: 0.5,
           });
-          if (!result.canceled) setImages([...images, result.assets[0].uri]);
+          if (!result.canceled) setPreviewImage(result.assets[0].uri);
         },
       },
       {
@@ -95,11 +98,10 @@ export default function AddScreen({ navigation }) {
         onPress: async () => {
           let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [4, 3],
+            allowsEditing: false,
             quality: 0.5,
           });
-          if (!result.canceled) setImages([...images, result.assets[0].uri]);
+          if (!result.canceled) setPreviewImage(result.assets[0].uri);
         },
       },
       { text: "Cancel", style: "cancel" },
@@ -388,6 +390,54 @@ export default function AddScreen({ navigation }) {
           </Text>
         )}
       </TouchableOpacity>
+
+      <Modal visible={!!previewImage} transparent animationType="fade">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.95)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Image
+            source={{ uri: previewImage }}
+            style={{ width: "90%", height: "60%", borderRadius: 16 }}
+            resizeMode="contain"
+          />
+          <View style={{ flexDirection: "row", gap: 16, marginTop: 24 }}>
+            <TouchableOpacity
+              onPress={() => setPreviewImage(null)}
+              style={{
+                backgroundColor: "#333",
+                paddingHorizontal: 32,
+                paddingVertical: 14,
+                borderRadius: 14,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+                Retake
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setImages([...images, previewImage]);
+                setPreviewImage(null);
+              }}
+              style={{
+                backgroundColor: "#fff",
+                paddingHorizontal: 32,
+                paddingVertical: 14,
+                borderRadius: 14,
+              }}
+            >
+              <Text style={{ color: "#000", fontWeight: "700", fontSize: 15 }}>
+                Use Photo
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
