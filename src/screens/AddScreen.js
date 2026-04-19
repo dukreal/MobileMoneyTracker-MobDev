@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,8 @@ import { useFocusEffect } from "@react-navigation/native";
 export default function AddScreen({ navigation }) {
   const { isDarkMode, user } = useStore();
   const [loading, setLoading] = useState(false);
+  const [inputKey, setInputKey] = useState(0);
+  const amountRef = useRef(null);
 
   const [type, setType] = useState("expense");
   const [amount, setAmount] = useState("");
@@ -166,6 +168,7 @@ export default function AddScreen({ navigation }) {
     setImages([]);
     setLocation(null);
     setLoading(false);
+    setInputKey((k) => k + 1);
   }, []);
 
   useFocusEffect(
@@ -215,13 +218,24 @@ export default function AddScreen({ navigation }) {
       </View>
       <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
         <TextInput
-          style={[styles.amountInput, { color: theme.text }]}
+          key={inputKey}
+          ref={amountRef}
+          style={[styles.amountInput, { color: theme.text, width: "100%" }]}
+          textAlign="center"
           placeholder="0.00"
           placeholderTextColor={theme.placeholder}
           keyboardType="decimal-pad"
           value={amount}
           onChangeText={setAmount}
-        />
+          caretHidden={false}
+          onFocus={() => {
+            if (amountRef.current) {
+              amountRef.current.setNativeProps({
+                selection: { start: amount.length, end: amount.length },
+              });
+            }
+          }}
+        /> 
         <Text style={[styles.label, { color: theme.text }]}>Category</Text>
         <View style={styles.catGrid}>
           {CATEGORIES[type].map((cat) => (
@@ -233,10 +247,10 @@ export default function AddScreen({ navigation }) {
               }}
               style={[
                 styles.catItem,
-                { backgroundColor: theme.card },
-                selectedCat?.name === cat.name && {
-                  borderColor: cat.color,
+                {
+                  backgroundColor: theme.card,
                   borderWidth: 2,
+                  borderColor: selectedCat?.name === cat.name ? cat.color : "transparent",
                 },
               ]}
             >
@@ -443,7 +457,7 @@ export default function AddScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 5 },
+  container: { flex: 1, padding: 20, paddingTop: 5, paddingBottom: 40 },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -463,6 +477,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: 5,
     fontWeight: "bold",
+    textAlignVertical: "center",
   },
   label: { fontSize: 14, fontWeight: "bold", marginBottom: 10 },
   catGrid: {
@@ -473,11 +488,13 @@ const styles = StyleSheet.create({
   },
   catItem: {
     width: "30%",
+    height: 80,
     padding: 10,
     alignItems: "center",
+    justifyContent: "center",
     borderRadius: 12,
     marginBottom: 4,
-  },
+  },  
   catText: { fontSize: 10, marginTop: 4, textAlign: "center" },
   subGrid: {
     flexDirection: "row",
@@ -505,6 +522,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginTop: 15,
+    marginBottom: 15,
     fontSize: 15,
   },
   saveButton: {

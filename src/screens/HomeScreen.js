@@ -310,7 +310,7 @@ export default function HomeScreen({ navigation, route }) {
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState("all"); // ENSURED THIS EXISTS
+  const [searchTypes, setSearchTypes] = useState(["all"]);
   const [searchStartDate, setSearchStartDate] = useState(null);
   const [searchEndDate, setSearchEndDate] = useState(null);
   const [startCalVisible, setStartCalVisible] = useState(false);
@@ -395,22 +395,33 @@ export default function HomeScreen({ navigation, route }) {
     return transactions.filter((t) => {
       const q = searchQuery.toLowerCase();
       const txDate = startOfDay(new Date(t.created_at));
+      const matchesDate =
+        searchStartDate || searchEndDate
+          ? true
+          : isSameDay(txDate, selectedDate);
       const matchesSearch =
         !q ||
-        (searchType === "all" &&
+        (searchTypes.includes("all") &&
           (t.sub_category?.toLowerCase().includes(q) ||
             t.notes?.toLowerCase().includes(q) ||
             String(t.amount).includes(q))) ||
-        (searchType === "sub_category" &&
+        (searchTypes.includes("sub_category") &&
           t.sub_category?.toLowerCase().includes(q)) ||
-        (searchType === "notes" && t.notes?.toLowerCase().includes(q)) ||
-        (searchType === "amount" && String(t.amount).includes(q));
+        (searchTypes.includes("notes") && t.notes?.toLowerCase().includes(q)) ||
+        (searchTypes.includes("amount") && String(t.amount).includes(q));
       const matchesStart =
         !searchStartDate || txDate >= startOfDay(searchStartDate);
       const matchesEnd = !searchEndDate || txDate <= startOfDay(searchEndDate);
-      return matchesSearch && matchesStart && matchesEnd;
+      return matchesDate && matchesSearch && matchesStart && matchesEnd;
     });
-  }, [transactions, searchQuery, searchType, searchStartDate, searchEndDate]);
+  }, [
+    transactions,
+    searchQuery,
+    searchTypes,
+    searchStartDate,
+    searchEndDate,
+    selectedDate,
+  ]);
 
   const filteredTransactions = useMemo(
     () =>
@@ -521,8 +532,18 @@ export default function HomeScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
 
-            {/* MODERN FILTER CHIPS */}
-            <View style={styles.chipContainer}>
+            {/* MODERN FILTER CHIPS + CALENDAR */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 6 }}
+              contentContainerStyle={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 2,
+                gap: 6,
+              }}
+            >
               {[
                 { id: "all", label: "All", icon: "search-outline" },
                 {
@@ -530,14 +551,43 @@ export default function HomeScreen({ navigation, route }) {
                   label: "Category",
                   icon: "pricetag-outline",
                 },
-                { id: "notes", label: "Notes", icon: "document-text-outline" },
+                {
+                  id: "notes",
+                  label: "Notes",
+                  icon: "document-text-outline",
+                },
                 { id: "amount", label: "Amount", icon: "cash-outline" },
               ].map((item) => {
-                const isActive = searchType === item.id;
+                const isActive = searchTypes.includes(item.id);
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    onPress={() => setSearchType(item.id)}
+                    onPress={() => {
+                      if (item.id === "all") {
+                        setSearchTypes(["all"]);
+                      } else {
+                        setSearchTypes((prev) => {
+                          const withoutAll = prev.filter((t) => t !== "all");
+                          if (withoutAll.includes(item.id)) {
+                            const next = withoutAll.filter(
+                              (t) => t !== item.id,
+                            );
+                            return next.length === 0 ? ["all"] : next;
+                          } else {
+                            const next = [...withoutAll, item.id];
+                            const allFields = [
+                              "sub_category",
+                              "notes",
+                              "amount",
+                            ];
+                            const hasAll = allFields.every((f) =>
+                              next.includes(f),
+                            );
+                            return hasAll ? ["all"] : next;
+                          }
+                        });
+                      }
+                    }}
                     style={[
                       styles.searchTypeChip,
                       {
@@ -572,61 +622,41 @@ export default function HomeScreen({ navigation, route }) {
                   </TouchableOpacity>
                 );
               })}
-            </View>
-
-            {/* DATE RANGE */}
-            <View style={styles.dateRangeRow}>
               <TouchableOpacity
-                onPress={() => setStartCalVisible(true)}
+                onPress={() =>
+                  searchStartDate || searchEndDate
+                    ? (setSearchStartDate(null), setSearchEndDate(null))
+                    : setStartCalVisible(true)
+                }
                 style={[
-                  styles.datePickerBtn,
-                  { backgroundColor: theme.card, borderColor: theme.border },
+                  styles.searchTypeChip,
+                  {
+                    backgroundColor:
+                      searchStartDate || searchEndDate
+                        ? "#0081db"
+                        : isDarkMode
+                          ? "#1a1a1a"
+                          : "#f0f0f0",
+                  },
                 ]}
               >
-                <Text
-                  style={{
-                    color: theme.subText,
-                    fontSize: 10,
-                    fontWeight: "bold",
-                  }}
-                >
-                  FROM
-                </Text>
-                <Text style={{ color: theme.text, fontWeight: "700" }}>
-                  {searchStartDate ? format(searchStartDate, "MMM d") : "Any"}
-                </Text>
+                <Ionicons
+                  name={
+                    searchStartDate || searchEndDate
+                      ? "close"
+                      : "calendar-outline"
+                  }
+                  size={18}
+                  color={
+                    searchStartDate || searchEndDate
+                      ? "#fff"
+                      : isDarkMode
+                        ? "#fff"
+                        : "#000"
+                  }
+                />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setEndCalVisible(true)}
-                style={[
-                  styles.datePickerBtn,
-                  { backgroundColor: theme.card, borderColor: theme.border },
-                ]}
-              >
-                <Text
-                  style={{
-                    color: theme.subText,
-                    fontSize: 10,
-                    fontWeight: "bold",
-                  }}
-                >
-                  TO
-                </Text>
-                <Text style={{ color: theme.text, fontWeight: "700" }}>
-                  {searchEndDate ? format(searchEndDate, "MMM d") : "Any"}
-                </Text>
-              </TouchableOpacity>
-              {(searchStartDate || searchEndDate) && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setSearchStartDate(null);
-                    setSearchEndDate(null);
-                  }}
-                >
-                  <Ionicons name="refresh-circle" size={34} color="#888" />
-                </TouchableOpacity>
-              )}
-            </View>
+            </ScrollView>
 
             <FlatList
               data={searchResults}
@@ -863,27 +893,26 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 10,
   },
-  searchActiveContainer: { paddingTop: 55, paddingHorizontal: 20, flex: 1 },
+  searchActiveContainer: { paddingTop: 45, paddingHorizontal: 20, flex: 1 },
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 15,
     paddingHorizontal: 15,
     height: 52,
-    marginBottom: 15,
+    marginBottom: 6,
   },
   searchInput: { flex: 1, fontSize: 16, paddingHorizontal: 10 },
   chipContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 15,
   },
   searchTypeChip: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 12,
   },
   searchTypeChipText: { fontSize: 12, fontWeight: "700" },
