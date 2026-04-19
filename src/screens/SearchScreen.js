@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,69 +8,151 @@ import {
   ScrollView,
   TextInput,
   Animated,
+  Modal,
+  Pressable,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
-import { isSameDay, startOfDay, format } from "date-fns";
+import {
+  isSameDay, startOfDay, format,
+  startOfMonth, endOfMonth, eachDayOfInterval,
+  addYears, subYears, isSameMonth,
+  setMonth, getYear, getMonth,
+  startOfWeek, endOfWeek, isAfter,
+} from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ─── CALENDAR MODAL ───────────────────────────────────────────────────────────
+function CalendarModal({ visible, onClose, currentDate, onSelectDate, isDarkMode, title }) {
+  const [viewDate, setViewDate] = useState(currentDate);
+  useEffect(() => { if (visible) setViewDate(currentDate); }, [visible, currentDate]);
+
+  const today = startOfDay(new Date());
+  const year = getYear(viewDate);
+  const month = getMonth(viewDate);
+  const currentYear = getYear(today);
+
+  const calendarDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 0 });
+    const end = endOfWeek(endOfMonth(viewDate), { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
+  }, [viewDate]);
+
+  const isFutureDay = (day) => isAfter(startOfDay(day), today);
+  const isFutureMonth = (monthIndex) => {
+    const testDate = setMonth(new Date(year, 0, 1), monthIndex);
+    return isAfter(startOfMonth(testDate), startOfMonth(today));
+  };
+  const isFutureYear = year > currentYear;
+  const textColor = isDarkMode ? "#fff" : "#000";
+  const blue = "#0081db";
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={cal.overlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <Pressable style={[cal.sheet, { backgroundColor: isDarkMode ? "#121212" : "#fff", borderColor: isDarkMode ? "#333" : "#eee" }]} onPress={(e) => e.stopPropagation()}>
+          <View style={cal.handle} />
+          {title && (
+            <Text style={{ color: blue, fontWeight: "800", fontSize: 13, letterSpacing: 1.2, textAlign: "center", marginBottom: 14 }}>
+              {title.toUpperCase()}
+            </Text>
+          )}
+          <View style={cal.navRow}>
+            <TouchableOpacity onPress={() => setViewDate(subYears(viewDate, 1))}>
+              <Ionicons name="chevron-back" size={24} color={textColor} />
+            </TouchableOpacity>
+            <Text style={[cal.navTitle, { color: textColor }]}>{year}</Text>
+            <TouchableOpacity onPress={() => !isFutureYear && setViewDate(addYears(viewDate, 1))} disabled={isFutureYear}>
+              <Ionicons name="chevron-forward" size={24} color={isFutureYear ? "#444" : textColor} />
+            </TouchableOpacity>
+          </View>
+          <View style={cal.monthGrid}>
+            {MONTHS.map((m, i) => {
+              const futureMonth = isFutureMonth(i);
+              return (
+                <View key={m} style={cal.monthCol}>
+                  <TouchableOpacity
+                    onPress={() => !futureMonth && setViewDate(setMonth(viewDate, i))}
+                    disabled={futureMonth}
+                    style={[cal.monthPill, i === month && { backgroundColor: isDarkMode ? "#222" : "#f0f0f0" }]}
+                  >
+                    <Text style={{ color: futureMonth ? "#444" : i === month && year === getYear(today) ? blue : "#666", fontWeight: "bold" }}>
+                      {m}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+          <View style={cal.divider} />
+          <View style={cal.dayGrid}>
+            {calendarDays.map((day, i) => {
+              const future = isFutureDay(day);
+              return (
+                <View key={i} style={cal.dayCol}>
+                  {isSameMonth(day, viewDate) ? (
+                    <TouchableOpacity
+                      onPress={() => { if (future) return; onSelectDate(day); onClose(); }}
+                      disabled={future}
+                      style={[cal.dayCell, isSameDay(day, currentDate) && { backgroundColor: blue }]}
+                    >
+                      <Text style={[cal.dayNum, { color: future ? "#444" : isSameDay(day, currentDate) ? "#fff" : isSameDay(day, today) ? blue : textColor }]}>
+                        {format(day, "d")}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+          <TouchableOpacity onPress={onClose} style={cal.doneBtn}>
+            <Text style={{ color: blue, fontWeight: "bold" }}>Done</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── TRANSACTION ITEM ─────────────────────────────────────────────────────────
 function TransactionItem({ item, theme, currency, navigation, index }) {
   const isExpense = item.type === "expense";
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(12)).current;
+  const slideAnim = useRef(new Animated.Value(10)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 250,
-        delay: index * 35,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        delay: index * 35,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 220, delay: index * 30, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 220, delay: index * 30, useNativeDriver: true }),
     ]).start();
   }, []);
 
   return (
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <TouchableOpacity
-        style={[styles.txCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+        style={[s.txCard, { backgroundColor: theme.card, borderColor: theme.border }]}
         onPress={() => navigation.navigate("Details", { item })}
         activeOpacity={0.7}
       >
-        {/* LEFT: Icon */}
-        <View style={[styles.txIconWrap, { backgroundColor: isExpense ? "#FF6B6B15" : "#2ECC7115" }]}>
-          <Ionicons
-            name={isExpense ? "arrow-down" : "arrow-up"}
-            size={17}
-            color={isExpense ? "#FF6B6B" : "#2ECC71"}
-          />
+        <View style={[s.txIcon, { backgroundColor: isExpense ? "#FF6B6B15" : "#2ECC7115" }]}>
+          <Ionicons name={isExpense ? "arrow-down" : "arrow-up"} size={16} color={isExpense ? "#FF6B6B" : "#2ECC71"} />
         </View>
-
-        {/* MIDDLE: Info */}
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={[styles.txTitle, { color: theme.text }]} numberOfLines={1}>
-            {item.sub_category}
-          </Text>
-          <Text style={[styles.txMeta, { color: theme.subText }]} numberOfLines={1}>
-            {item.parent_category}
-            {item.notes ? ` • ${item.notes}` : ""}
+          <Text style={[s.txTitle, { color: theme.text }]} numberOfLines={1}>{item.sub_category}</Text>
+          <Text style={[s.txMeta, { color: theme.subText }]} numberOfLines={1}>
+            {item.parent_category}{item.notes ? ` • ${item.notes}` : ""}
           </Text>
         </View>
-
-        {/* RIGHT: Amount + Time */}
-        <View style={{ alignItems: "flex-end", marginLeft: 10 }}>
-          <Text style={[styles.txAmount, { color: isExpense ? "#FF6B6B" : "#2ECC71" }]}>
+        <View style={{ alignItems: "flex-end" }}>
+          <Text style={[s.txAmount, { color: isExpense ? "#FF6B6B" : "#2ECC71" }]}>
             {isExpense ? "-" : "+"}{currency}{item.amount.toFixed(2)}
           </Text>
-          <Text style={[styles.txTime, { color: theme.subText }]}>
+          <Text style={[s.txTime, { color: theme.subText }]}>
             {item.created_at ? format(new Date(item.created_at), "MMM d, h:mm a") : ""}
           </Text>
         </View>
@@ -79,6 +161,7 @@ function TransactionItem({ item, theme, currency, navigation, index }) {
   );
 }
 
+// ─── SEARCH SCREEN ────────────────────────────────────────────────────────────
 export default function SearchScreen({ navigation }) {
   const { currency, isDarkMode, user } = useStore();
   const [transactions, setTransactions] = useState([]);
@@ -86,6 +169,8 @@ export default function SearchScreen({ navigation }) {
   const [searchTypes, setSearchTypes] = useState(["all"]);
   const [searchStartDate, setSearchStartDate] = useState(null);
   const [searchEndDate, setSearchEndDate] = useState(null);
+  const [startCalVisible, setStartCalVisible] = useState(false);
+  const [endCalVisible, setEndCalVisible] = useState(false);
   const inputRef = useRef(null);
 
   const theme = {
@@ -99,35 +184,32 @@ export default function SearchScreen({ navigation }) {
 
   const fetchTransactions = useCallback(async () => {
     const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
+      .from("transactions").select("*")
       .eq("user_id", user?.id)
       .order("created_at", { ascending: false });
     if (!error && data) setTransactions(data);
   }, [user?.id]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchTransactions();
-      setSearchQuery("");
-      setSearchTypes(["all"]);
-      setSearchStartDate(null);
-      setSearchEndDate(null);
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }, [fetchTransactions]),
-  );
+  useFocusEffect(useCallback(() => {
+    fetchTransactions();
+    setSearchQuery("");
+    setSearchTypes(["all"]);
+    setSearchStartDate(null);
+    setSearchEndDate(null);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, [fetchTransactions]));
 
   const searchResults = useMemo(() => {
     return transactions.filter((t) => {
       const q = searchQuery.toLowerCase();
       const txDate = startOfDay(new Date(t.created_at));
-      const matchesSearch =
-        !q ||
-        (searchTypes.includes("all") &&
-          (t.sub_category?.toLowerCase().includes(q) ||
-            t.parent_category?.toLowerCase().includes(q) ||
-            t.notes?.toLowerCase().includes(q) ||
-            String(t.amount).includes(q))) ||
+      const matchesSearch = !q ||
+        (searchTypes.includes("all") && (
+          t.sub_category?.toLowerCase().includes(q) ||
+          t.parent_category?.toLowerCase().includes(q) ||
+          t.notes?.toLowerCase().includes(q) ||
+          String(t.amount).includes(q)
+        )) ||
         (searchTypes.includes("sub_category") && t.sub_category?.toLowerCase().includes(q)) ||
         (searchTypes.includes("notes") && t.notes?.toLowerCase().includes(q)) ||
         (searchTypes.includes("amount") && String(t.amount).includes(q));
@@ -138,21 +220,33 @@ export default function SearchScreen({ navigation }) {
   }, [transactions, searchQuery, searchTypes, searchStartDate, searchEndDate]);
 
   const handleChipPress = (id) => {
-    if (id === "all") {
-      setSearchTypes(["all"]);
+    if (id === "all") { setSearchTypes(["all"]); return; }
+    setSearchTypes((prev) => {
+      const filtered = prev.filter((t) => t !== "all");
+      if (filtered.includes(id)) {
+        const next = filtered.filter((t) => t !== id);
+        return next.length === 0 ? ["all"] : next;
+      }
+      const next = [...filtered, id];
+      const allFields = ["sub_category", "notes", "amount"];
+      return allFields.every((f) => next.includes(f)) ? ["all"] : next;
+    });
+  };
+
+  const handleDateChipPress = () => {
+    if (searchStartDate || searchEndDate) {
+      setSearchStartDate(null);
+      setSearchEndDate(null);
     } else {
-      setSearchTypes((prev) => {
-        const filtered = prev.filter((t) => t !== "all");
-        if (filtered.includes(id)) {
-          const next = filtered.filter((t) => t !== id);
-          return next.length === 0 ? ["all"] : next;
-        }
-        const next = [...filtered, id];
-        const allFields = ["sub_category", "notes", "amount"];
-        return allFields.every((f) => next.includes(f)) ? ["all"] : next;
-      });
+      setStartCalVisible(true);
     }
   };
+
+  const dateLabel = searchStartDate && searchEndDate
+    ? `${format(searchStartDate, "MMM d")} – ${format(searchEndDate, "MMM d")}`
+    : searchStartDate
+    ? format(searchStartDate, "MMM d")
+    : "Date";
 
   const CHIPS = [
     { id: "all", label: "All", icon: "flash-outline" },
@@ -161,20 +255,22 @@ export default function SearchScreen({ navigation }) {
     { id: "amount", label: "Amount", icon: "cash-outline" },
   ];
 
+  const hasDate = searchStartDate || searchEndDate;
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+    <View style={[s.container, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
 
       {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="chevron-back" size={26} color={theme.text} />
         </TouchableOpacity>
-        <View style={[styles.searchBarContainer, { backgroundColor: theme.inputBg }]}>
+        <View style={[s.searchBar, { backgroundColor: theme.inputBg }]}>
           <Ionicons name="search" size={16} color={theme.subText} />
           <TextInput
             ref={inputRef}
-            style={[styles.searchInput, { color: theme.text }]}
+            style={[s.searchInput, { color: theme.text }]}
             placeholder="Search transactions..."
             placeholderTextColor={theme.subText}
             value={searchQuery}
@@ -190,123 +286,94 @@ export default function SearchScreen({ navigation }) {
       </View>
 
       {/* CHIPS */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipsScroll} contentContainerStyle={s.chipsContent}>
         {CHIPS.map((chip) => {
           const isActive = searchTypes.includes(chip.id);
           return (
             <TouchableOpacity
               key={chip.id}
               onPress={() => handleChipPress(chip.id)}
-              style={[
-                styles.chip,
-                { backgroundColor: isActive ? (isDarkMode ? "#fff" : "#000") : theme.inputBg },
-              ]}
+              style={[s.chip, { backgroundColor: isActive ? (isDarkMode ? "#fff" : "#000") : theme.inputBg }]}
             >
-              <Ionicons
-                name={chip.icon}
-                size={12}
-                color={isActive ? (isDarkMode ? "#000" : "#fff") : theme.subText}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.chipText, { color: isActive ? (isDarkMode ? "#000" : "#fff") : theme.subText }]}>
-                {chip.label}
-              </Text>
+              <Ionicons name={chip.icon} size={13} color={isActive ? (isDarkMode ? "#000" : "#fff") : theme.subText} style={{ marginRight: 5 }} />
+              <Text style={[s.chipText, { color: isActive ? (isDarkMode ? "#000" : "#fff") : theme.subText }]}>{chip.label}</Text>
             </TouchableOpacity>
           );
         })}
-
-        {/* DATE CHIP */}
         <TouchableOpacity
-          onPress={() =>
-            searchStartDate || searchEndDate
-              ? (setSearchStartDate(null), setSearchEndDate(null))
-              : setSearchStartDate(new Date())
-          }
-          style={[
-            styles.chip,
-            { backgroundColor: searchStartDate || searchEndDate ? "#0081db" : theme.inputBg },
-          ]}
+          onPress={handleDateChipPress}
+          style={[s.chip, { backgroundColor: hasDate ? "#0081db" : theme.inputBg }]}
         >
-          <Ionicons
-            name={searchStartDate || searchEndDate ? "close" : "calendar-outline"}
-            size={12}
-            color={searchStartDate || searchEndDate ? "#fff" : theme.subText}
-            style={{ marginRight: 5 }}
-          />
-          <Text style={[styles.chipText, { color: searchStartDate || searchEndDate ? "#fff" : theme.subText }]}>
-            {searchStartDate || searchEndDate ? "Clear" : "Date"}
-          </Text>
+          <Ionicons name={hasDate ? "close" : "calendar-outline"} size={13} color={hasDate ? "#fff" : theme.subText} style={{ marginRight: 5 }} />
+          <Text style={[s.chipText, { color: hasDate ? "#fff" : theme.subText }]}>{dateLabel}</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* RESULTS COUNT */}
-      {searchQuery.length > 0 && (
-        <Text style={[styles.resultsLabel, { color: theme.subText }]}>
-          {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
-        </Text>
-      )}
-
       {/* LIST */}
       <FlatList
-        data={searchResults}
+        data={searchQuery.length === 0 && !searchStartDate && !searchEndDate ? [] : 
+              searchStartDate && !searchEndDate ? [] : searchResults}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.listContent,
-          searchResults.length === 0 && { flexGrow: 1 },
-        ]}
+        contentContainerStyle={[s.listContent, { flexGrow: 1 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         renderItem={({ item, index }) => (
-          <TransactionItem
-            item={item}
-            index={index}
-            theme={theme}
-            currency={currency}
-            navigation={navigation}
-          />
+          <TransactionItem item={item} index={index} theme={theme} currency={currency} navigation={navigation} />
         )}
+        ListHeaderComponent={
+          <Text style={[s.resultsLabel, { color: theme.subText, opacity: (searchQuery.length > 0 || (searchStartDate && searchEndDate)) && searchResults.length > 0 ? 1 : 0 }]}>
+            {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+          </Text>
+        }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={[styles.emptyIconBox, { backgroundColor: theme.card }]}>
+          <View style={s.emptyWrap}>
+            <View style={[s.emptyIconBox, { backgroundColor: theme.card }]}>
               <Ionicons name="search-outline" size={32} color={theme.subText} />
             </View>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>
-              {searchQuery ? "No results" : "Search anything"}
+            <Text style={[s.emptyTitle, { color: theme.text }]}>
+              {searchQuery ? "No results" : "Try searching"}
             </Text>
-            <Text style={[styles.emptySub, { color: theme.subText }]}>
-              {searchQuery
-                ? `Nothing matched "${searchQuery}"`
-                : "Find by name, category, amount or notes"}
+            <Text style={[s.emptySub, { color: theme.subText }]}>
+              {searchQuery ? `Nothing matched "${searchQuery}"` : "Find by name, category,\namount or notes"}
             </Text>
           </View>
         }
+      />
+
+      {/* CALENDARS */}
+      <CalendarModal
+        visible={startCalVisible}
+        onClose={() => setStartCalVisible(false)}
+        currentDate={searchStartDate || new Date()}
+        onSelectDate={(date) => { setSearchStartDate(date); setTimeout(() => setEndCalVisible(true), 300); }}
+        isDarkMode={isDarkMode}
+        title="Start Date"
+      />
+      <CalendarModal
+        visible={endCalVisible}
+        onClose={() => setEndCalVisible(false)}
+        currentDate={searchEndDate || searchStartDate || new Date()}
+        onSelectDate={(date) => { setSearchEndDate(date); }}
+        isDarkMode={isDarkMode}
+        title="End Date"
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1 },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingTop: 55,
-    paddingBottom: 8,
+    paddingHorizontal: 14,
+    paddingTop: 52,
+    paddingBottom: 6,
     gap: 8,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  searchBarContainer: {
+  backBtn: { width: 36, height: 36, justifyContent: "center", alignItems: "center" },
+  searchBar: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -317,35 +384,30 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 15 },
 
-  chipsRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  chipsScroll: { flexGrow: 0, flexShrink: 0 },
+  chipsContent: {
     paddingHorizontal: 14,
-    paddingBottom: 8,
+    paddingVertical: 6,
     gap: 6,
+    alignItems: "center",
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    overflow: "visible",
   },
-  chipText: { fontSize: 12, fontWeight: "700" },
+  chipText: { fontSize: 13, fontWeight: "700" },
 
   resultsLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    paddingHorizontal: 18,
-    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: "700",
     letterSpacing: 0.3,
+    marginBottom: 10,
   },
-
-  listContent: {
-    paddingHorizontal: 14,
-    paddingTop: 2,
-    paddingBottom: 40,
-  },
+  listContent: { paddingHorizontal: 14, paddingTop: 4, paddingBottom: 40 },
 
   txCard: {
     flexDirection: "row",
@@ -355,33 +417,31 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  txIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  txIcon: { width: 40, height: 40, borderRadius: 13, justifyContent: "center", alignItems: "center" },
   txTitle: { fontWeight: "700", fontSize: 14, marginBottom: 2 },
   txMeta: { fontSize: 12 },
   txAmount: { fontWeight: "800", fontSize: 14, marginBottom: 2 },
   txTime: { fontSize: 11 },
 
-  emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingBottom: 80,
-    gap: 10,
-  },
-  emptyIconBox: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6,
-  },
+  emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
+  emptyIconBox: { width: 68, height: 68, borderRadius: 22, justifyContent: "center", alignItems: "center", marginBottom: 4 },
   emptyTitle: { fontSize: 17, fontWeight: "800" },
-  emptySub: { fontSize: 13, textAlign: "center", paddingHorizontal: 40, lineHeight: 19 },
+  emptySub: { fontSize: 13, textAlign: "center", lineHeight: 20, color: "#888" },
+});
+
+const cal = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
+  sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, borderWidth: 1 },
+  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#333", alignSelf: "center", marginBottom: 16 },
+  navRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 20 },
+  navTitle: { fontSize: 22, fontWeight: "800", marginHorizontal: 30 },
+  monthGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 10 },
+  monthCol: { width: "25%", height: 40, justifyContent: "center", alignItems: "center" },
+  monthPill: { width: "90%", height: "85%", borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  divider: { height: 1, backgroundColor: "#222", marginVertical: 15 },
+  dayGrid: { flexDirection: "row", flexWrap: "wrap" },
+  dayCol: { width: "14.28%", height: 48, justifyContent: "center", alignItems: "center" },
+  dayCell: { width: 38, height: 38, borderRadius: 12, justifyContent: "center", alignItems: "center" },
+  dayNum: { fontSize: 16, fontWeight: "700" },
+  doneBtn: { alignItems: "center", marginTop: 10 },
 });
