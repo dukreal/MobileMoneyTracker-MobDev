@@ -13,12 +13,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   Modal,
   Pressable,
   Dimensions,
   Alert,
-  BackHandler,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../supabase/supabaseClient";
@@ -308,11 +306,6 @@ export default function HomeScreen({ navigation, route }) {
   // States
   const [transactions, setTransactions] = useState([]);
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchTypes, setSearchTypes] = useState(["all"]);
-  const [searchStartDate, setSearchStartDate] = useState(null);
-  const [searchEndDate, setSearchEndDate] = useState(null);
   const [startCalVisible, setStartCalVisible] = useState(false);
   const [endCalVisible, setEndCalVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
@@ -330,21 +323,6 @@ export default function HomeScreen({ navigation, route }) {
     subText: isDarkMode ? "#888888" : "#8e8e93",
     chipUnselected: isDarkMode ? "#1a1a1a" : "#f5f5f5",
   };
-
-  useEffect(() => {
-    const backAction = () => {
-      if (isSearchOpen) {
-        setIsSearchOpen(false);
-        return true;
-      }
-      return false;
-    };
-    const handler = BackHandler.addEventListener(
-      "hardwareBackPress",
-      backAction,
-    );
-    return () => handler.remove();
-  }, [isSearchOpen]);
 
   const fetchTransactions = useCallback(async () => {
     const { data, error } = await supabase
@@ -390,39 +368,6 @@ export default function HomeScreen({ navigation, route }) {
     selectionSource.current = "system";
   }, [selectedDate, daysInMonth]);
 
-  // Combined Filters
-  const searchResults = useMemo(() => {
-    return transactions.filter((t) => {
-      const q = searchQuery.toLowerCase();
-      const txDate = startOfDay(new Date(t.created_at));
-      const matchesDate =
-        searchStartDate || searchEndDate
-          ? true
-          : isSameDay(txDate, selectedDate);
-      const matchesSearch =
-        !q ||
-        (searchTypes.includes("all") &&
-          (t.sub_category?.toLowerCase().includes(q) ||
-            t.notes?.toLowerCase().includes(q) ||
-            String(t.amount).includes(q))) ||
-        (searchTypes.includes("sub_category") &&
-          t.sub_category?.toLowerCase().includes(q)) ||
-        (searchTypes.includes("notes") && t.notes?.toLowerCase().includes(q)) ||
-        (searchTypes.includes("amount") && String(t.amount).includes(q));
-      const matchesStart =
-        !searchStartDate || txDate >= startOfDay(searchStartDate);
-      const matchesEnd = !searchEndDate || txDate <= startOfDay(searchEndDate);
-      return matchesDate && matchesSearch && matchesStart && matchesEnd;
-    });
-  }, [
-    transactions,
-    searchQuery,
-    searchTypes,
-    searchStartDate,
-    searchEndDate,
-    selectedDate,
-  ]);
-
   const filteredTransactions = useMemo(
     () =>
       transactions.filter((t) =>
@@ -442,250 +387,58 @@ export default function HomeScreen({ navigation, route }) {
       {/* HEADER */}
       <View style={styles.headerContainer}>
         {/* Row 1 — App Name */}
-        {!isSearchOpen && (
-          <View style={styles.appNameRow}>
-            <Text style={[styles.appNameText, { color: theme.text }]}>
-              Montra
-            </Text>
-          </View>
-        )}
+        <View style={styles.appNameRow}>
+          <Text style={[styles.appNameText, { color: theme.text }]}>
+            Montra
+          </Text>
+        </View>
 
-        {/* Row 2 — Year | Month + Icons */}
         {/* Row 2 — Year+Month | Icons */}
         <View style={styles.headerMainRow}>
-          {!isSearchOpen && (
-            <TouchableOpacity
-              style={styles.monthSelectorTrigger}
-              onPress={() => setCalendarVisible(true)}
-            >
-              <Text style={styles.yearSubLabel}>
-                {format(selectedDate, "yyyy")}
+          <TouchableOpacity
+            style={styles.monthSelectorTrigger}
+            onPress={() => setCalendarVisible(true)}
+          >
+            <Text style={styles.yearSubLabel}>
+              {format(selectedDate, "yyyy")}
+            </Text>
+            <View style={styles.monthDisplayRow}>
+              <Text style={[styles.monthLargeText, { color: theme.text }]}>
+                {format(selectedDate, "MMMM")}
               </Text>
-              <View style={styles.monthDisplayRow}>
-                <Text style={[styles.monthLargeText, { color: theme.text }]}>
-                  {format(selectedDate, "MMMM")}
-                </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={18}
-                  color={theme.text}
-                  style={{ marginLeft: 6, marginTop: 4 }}
-                />
-              </View>
-            </TouchableOpacity>
-          )}
-          {!isSearchOpen && (
-            <View style={styles.headerIcons}>
-              <TouchableOpacity
-                onPress={() => setIsSearchOpen(true)}
-                style={[
-                  styles.circleIconBtn,
-                  { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-                ]}
-              >
-                <Ionicons name="search" size={20} color={theme.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {}}
-                style={[
-                  styles.circleIconBtn,
-                  { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-                ]}
-              >
-                <Ionicons
-                  name="settings-outline"
-                  size={20}
-                  color={theme.text}
-                />
-              </TouchableOpacity>
+              <Ionicons
+                name="chevron-down"
+                size={18}
+                color={theme.text}
+                style={{ marginLeft: 6, marginTop: 4 }}
+              />
             </View>
-          )}
-        </View>
-      </View>
-
-      {/* SEARCH OVERLAY */}
-      {isSearchOpen && (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            { zIndex: 99, backgroundColor: theme.bg },
-          ]}
-        >
-          <View style={styles.searchActiveContainer}>
-            <View
+          </TouchableOpacity>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Search")}
               style={[
-                styles.searchBarContainer,
+                styles.circleIconBtn,
                 { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
               ]}
             >
-              <Ionicons name="search" size={18} color="#888" />
-              <TextInput
-                style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Search..."
-                placeholderTextColor="#666"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-              />
-              <TouchableOpacity onPress={() => setIsSearchOpen(false)}>
-                <Ionicons name="close-circle" size={24} color="#888" />
-              </TouchableOpacity>
-            </View>
-
-            {/* MODERN FILTER CHIPS + CALENDAR */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: 6 }}
-              contentContainerStyle={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 2,
-                gap: 6,
-              }}
+              <Ionicons name="search" size={20} color={theme.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {}}
+              style={[
+                styles.circleIconBtn,
+                { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
+              ]}
             >
-              {[
-                { id: "all", label: "All", icon: "search-outline" },
-                {
-                  id: "sub_category",
-                  label: "Category",
-                  icon: "pricetag-outline",
-                },
-                {
-                  id: "notes",
-                  label: "Notes",
-                  icon: "document-text-outline",
-                },
-                { id: "amount", label: "Amount", icon: "cash-outline" },
-              ].map((item) => {
-                const isActive = searchTypes.includes(item.id);
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    onPress={() => {
-                      if (item.id === "all") {
-                        setSearchTypes(["all"]);
-                      } else {
-                        setSearchTypes((prev) => {
-                          const withoutAll = prev.filter((t) => t !== "all");
-                          if (withoutAll.includes(item.id)) {
-                            const next = withoutAll.filter(
-                              (t) => t !== item.id,
-                            );
-                            return next.length === 0 ? ["all"] : next;
-                          } else {
-                            const next = [...withoutAll, item.id];
-                            const allFields = [
-                              "sub_category",
-                              "notes",
-                              "amount",
-                            ];
-                            const hasAll = allFields.every((f) =>
-                              next.includes(f),
-                            );
-                            return hasAll ? ["all"] : next;
-                          }
-                        });
-                      }
-                    }}
-                    style={[
-                      styles.searchTypeChip,
-                      {
-                        backgroundColor: isActive
-                          ? isDarkMode
-                            ? "#fff"
-                            : "#000"
-                          : theme.chipUnselected,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={item.icon}
-                      size={14}
-                      color={isActive ? (isDarkMode ? "#000" : "#fff") : "#888"}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
-                      style={[
-                        styles.searchTypeChipText,
-                        {
-                          color: isActive
-                            ? isDarkMode
-                              ? "#000"
-                              : "#fff"
-                            : "#888",
-                        },
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-              <TouchableOpacity
-                onPress={() =>
-                  searchStartDate || searchEndDate
-                    ? (setSearchStartDate(null), setSearchEndDate(null))
-                    : setStartCalVisible(true)
-                }
-                style={[
-                  styles.searchTypeChip,
-                  {
-                    backgroundColor:
-                      searchStartDate || searchEndDate
-                        ? "#0081db"
-                        : isDarkMode
-                          ? "#1a1a1a"
-                          : "#f0f0f0",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={
-                    searchStartDate || searchEndDate
-                      ? "close"
-                      : "calendar-outline"
-                  }
-                  size={18}
-                  color={
-                    searchStartDate || searchEndDate
-                      ? "#fff"
-                      : isDarkMode
-                        ? "#fff"
-                        : "#000"
-                  }
-                />
-              </TouchableOpacity>
-            </ScrollView>
-
-            <FlatList
-              data={searchResults}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => (
-                <TransactionItem
-                  item={item}
-                  index={index}
-                  theme={theme}
-                  currency={currency}
-                  navigation={navigation}
-                  isSearchOpen={true}
-                />
-              )}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={{ color: theme.subText }}>
-                    {searchQuery ? "No results" : "Start typing to search..."}
-                  </Text>
-                </View>
-              }
-            />
+              <Ionicons name="settings-outline" size={20} color={theme.text} />
+            </TouchableOpacity>
           </View>
         </View>
-      )}
+      </View>
 
       {/* MAIN VIEW: DATE STRIP */}
-      {!isSearchOpen && (
-        <View style={[styles.dateStrip, { borderColor: theme.border }]}>
+      <View style={[styles.dateStrip, { borderColor: theme.border }]}>
           <ScrollView
             ref={scrollRef}
             horizontal
@@ -740,7 +493,6 @@ export default function HomeScreen({ navigation, route }) {
             })}
           </ScrollView>
         </View>
-      )}
 
       {/* SUMMARY */}
       <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
@@ -808,20 +560,6 @@ export default function HomeScreen({ navigation, route }) {
           selectionSource.current = "modal";
           setSelectedDate(startOfDay(date));
         }}
-        isDarkMode={isDarkMode}
-      />
-      <CalendarModal
-        visible={startCalVisible}
-        onClose={() => setStartCalVisible(false)}
-        currentDate={searchStartDate || new Date()}
-        onSelectDate={setSearchStartDate}
-        isDarkMode={isDarkMode}
-      />
-      <CalendarModal
-        visible={endCalVisible}
-        onClose={() => setEndCalVisible(false)}
-        currentDate={searchEndDate || new Date()}
-        onSelectDate={setSearchEndDate}
         isDarkMode={isDarkMode}
       />
     </View>
@@ -893,14 +631,14 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 10,
   },
-  searchActiveContainer: { paddingTop: 45, paddingHorizontal: 20, flex: 1 },
+  searchActiveContainer: { paddingTop: 55, paddingHorizontal: 20, flex: 1 },
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 15,
     paddingHorizontal: 15,
     height: 52,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   searchInput: { flex: 1, fontSize: 16, paddingHorizontal: 10 },
   chipContainer: {
