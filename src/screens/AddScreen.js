@@ -484,7 +484,8 @@ export default function AddScreen({ navigation }) {
             style={{
               color: theme.placeholder,
               fontSize: 12,
-              marginTop: 4,
+              marginTop: 6,
+              marginBottom: -6,
             }}
           >
             {images.length}/3 Photos (optional)
