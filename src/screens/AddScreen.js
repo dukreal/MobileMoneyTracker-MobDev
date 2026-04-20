@@ -23,7 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 
 export default function AddScreen({ navigation }) {
-  const { isDarkMode, user } = useStore();
+  const { isDarkMode, user, currency } = useStore();
   const [loading, setLoading] = useState(false);
   const [inputKey, setInputKey] = useState(0);
   const amountRef = useRef(null);
@@ -190,52 +190,108 @@ export default function AddScreen({ navigation }) {
           Add
         </Text>
       </View>
-      <View style={[styles.row, { paddingHorizontal: 20 }]}>
-        <TouchableOpacity
+      <View style={[styles.segmentWrapper, { backgroundColor: theme.card }]}>
+        <View
           style={[
-            styles.toggle,
-            { backgroundColor: theme.card },
-            type === "expense" && styles.activeExpense,
+            styles.segmentSlider,
+            {
+              backgroundColor: type === "expense" ? "#FF6B6B" : "#2ECC71",
+              left: type === "expense" ? 4 : "50%",
+            },
           ]}
+        />
+        <TouchableOpacity
+          style={styles.segmentBtn}
           onPress={() => setType("expense")}
         >
-          <Text style={{ color: type === "expense" ? "#fff" : theme.text }}>
+          <Ionicons
+            name="arrow-down-circle"
+            size={15}
+            color={type === "expense" ? "#fff" : theme.placeholder}
+            style={{ marginRight: 5 }}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              { color: type === "expense" ? "#fff" : theme.placeholder },
+            ]}
+          >
             Expense
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.toggle,
-            { backgroundColor: theme.card },
-            type === "income" && styles.activeIncome,
-          ]}
+          style={styles.segmentBtn}
           onPress={() => setType("income")}
         >
-          <Text style={{ color: type === "income" ? "#fff" : theme.text }}>
+          <Ionicons
+            name="arrow-up-circle"
+            size={15}
+            color={type === "income" ? "#fff" : theme.placeholder}
+            style={{ marginRight: 5 }}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              { color: type === "income" ? "#fff" : theme.placeholder },
+            ]}
+          >
             Income
           </Text>
         </TouchableOpacity>
       </View>
       <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
-        <TextInput
-          key={inputKey}
-          ref={amountRef}
-          style={[styles.amountInput, { color: theme.text, width: "100%" }]}
-          textAlign="center"
-          placeholder="0.00"
-          placeholderTextColor={theme.placeholder}
-          keyboardType="decimal-pad"
-          value={amount}
-          onChangeText={setAmount}
-          caretHidden={false}
-          onFocus={() => {
-            if (amountRef.current) {
-              amountRef.current.setNativeProps({
-                selection: { start: amount.length, end: amount.length },
-              });
+        <View
+          style={[
+            styles.amountCard,
+            {
+              backgroundColor: type === "expense" ? "#FF6B6B18" : "#2ECC7118",
+              borderColor: type === "expense" ? "#FF6B6B44" : "#2ECC7144",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.currencySymbol,
+              { color: type === "expense" ? "#FF6B6B" : "#2ECC71" },
+            ]}
+          >
+            {currency}
+          </Text>
+          <TextInput
+            key={inputKey}
+            ref={amountRef}
+            style={[
+              styles.amountInput,
+              { color: type === "expense" ? "#FF6B6B" : "#2ECC71" },
+            ]}
+            textAlign="center"
+            placeholder="0.00"
+            placeholderTextColor={
+              type === "expense" ? "#FF6B6B88" : "#2ECC7188"
             }
-          }}
-        /> 
+            keyboardType="decimal-pad"
+            value={amount}
+            onChangeText={setAmount}
+            caretHidden={false}
+            onFocus={() => {
+              if (amountRef.current) {
+                amountRef.current.setNativeProps({
+                  selection: { start: amount.length, end: amount.length },
+                });
+              }
+            }}
+          />
+        </View>
+        <TextInput
+          style={[
+            styles.notesInput,
+            { color: theme.text, borderColor: theme.inputBorder },
+          ]}
+          placeholder="Add a note..."
+          placeholderTextColor={theme.placeholder}
+          value={notes}
+          onChangeText={setNotes}
+        />
         <Text style={[styles.label, { color: theme.text }]}>Category</Text>
         <View style={styles.catGrid}>
           {CATEGORIES[type].map((cat) => (
@@ -248,9 +304,13 @@ export default function AddScreen({ navigation }) {
               style={[
                 styles.catItem,
                 {
-                  backgroundColor: theme.card,
+                  backgroundColor:
+                    selectedCat?.name === cat.name
+                      ? cat.color + "22"
+                      : theme.card,
                   borderWidth: 2,
-                  borderColor: selectedCat?.name === cat.name ? cat.color : "transparent",
+                  borderColor:
+                    selectedCat?.name === cat.name ? cat.color : "transparent",
                 },
               ]}
             >
@@ -290,8 +350,8 @@ export default function AddScreen({ navigation }) {
                 styles.utilBtn,
                 {
                   backgroundColor: theme.card,
-                  justifyContent: "space-between",
                   flex: 1,
+                  justifyContent: "space-between",
                 },
               ]}
             >
@@ -304,19 +364,42 @@ export default function AddScreen({ navigation }) {
                 <Text
                   style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}
                 >
-                  Location
+                  {fetchingLoc
+                    ? "Fetching..."
+                    : location
+                      ? location.name
+                      : "Tag Location"}
                 </Text>
               </View>
-              {location || fetchingLoc ? (
-                <Text
-                  style={{ color: "#4A90E2", fontSize: 11, maxWidth: "50%" }}
-                  numberOfLines={1}
-                >
-                  {fetchingLoc ? "Fetching..." : location.name}
-                </Text>
-              ) : null}
+              {location && (
+                <TouchableOpacity onPress={() => setLocation(null)}>
+                  <Ionicons
+                    name="close-circle"
+                    size={18}
+                    color={theme.placeholder}
+                  />
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           </View>
+          <TextInput
+            style={[
+              styles.locationManualInput,
+              {
+                color: theme.text,
+                borderColor: theme.inputBorder,
+                backgroundColor: theme.card,
+              },
+            ]}
+            placeholder="Or type a location name..."
+            placeholderTextColor={theme.placeholder}
+            value={location?.name && !fetchingLoc ? location.name : ""}
+            onChangeText={(text) =>
+              setLocation(
+                text ? { latitude: null, longitude: null, name: text } : null,
+              )
+            }
+          />
           <Text
             style={{
               color: theme.placeholder,
@@ -372,33 +455,23 @@ export default function AddScreen({ navigation }) {
             ))}
           </View>
         </View>
-        <TextInput
-          style={[
-            styles.notesInput,
-            { color: theme.text, borderColor: theme.inputBorder },
-          ]}
-          placeholder="Add a note..."
-          placeholderTextColor={theme.placeholder}
-          value={notes}
-          onChangeText={setNotes}
-        />
       </ScrollView>
       <TouchableOpacity
         style={[
           styles.saveButton,
-          { backgroundColor: isDarkMode ? "#fff" : "#000" },
+          {
+            backgroundColor: isDarkMode ? "#fff" : "#000",
+            opacity: !amount || !selectedCat || !selectedSub ? 0.4 : 1,
+          },
         ]}
         onPress={handleSave}
-        disabled={loading}
+        disabled={loading || !amount || !selectedCat || !selectedSub}
       >
         {loading ? (
           <ActivityIndicator color={isDarkMode ? "#000" : "#fff"} />
         ) : (
           <Text
-            style={{
-              color: isDarkMode ? "#000" : "#fff",
-              fontWeight: "bold",
-            }}
+            style={{ color: isDarkMode ? "#000" : "#fff", fontWeight: "bold" }}
           >
             Save Transaction
           </Text>
@@ -458,6 +531,53 @@ export default function AddScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, paddingTop: 5, paddingBottom: 40 },
+  segmentWrapper: {
+    flexDirection: "row",
+    borderRadius: 14,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    padding: 4,
+    position: "relative",
+    height: 46,
+  },
+  segmentSlider: {
+    position: "absolute",
+    top: 4,
+    bottom: 4,
+    width: "49%",
+    borderRadius: 10,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  segmentText: { fontSize: 14, fontWeight: "700" },
+  amountCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 5,
+    marginHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  currencySymbol: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginRight: 4,
+  },
+  locationManualInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 8,
+    fontSize: 13,
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -494,7 +614,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 12,
     marginBottom: 4,
-  },  
+  },
   catText: { fontSize: 10, marginTop: 4, textAlign: "center" },
   subGrid: {
     flexDirection: "row",
@@ -514,7 +634,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flex: 1,
   },
-  imagePreviewRow: { flexDirection: "row", marginTop: 15, gap: 10 },
+  imagePreviewRow: { flexDirection: "row", marginTop: 15, gap: 10, paddingBottom: 15 },
   previewImage: { width: 70, height: 70, borderRadius: 10 },
   removeImg: { position: "absolute", top: -5, right: -5 },
   notesInput: {
