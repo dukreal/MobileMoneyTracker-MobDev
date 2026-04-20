@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
+import LocationPickerModal from "../components/LocationPickerModal";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -37,6 +38,7 @@ export default function AddScreen({ navigation }) {
   const [images, setImages] = useState([]);
   const [location, setLocation] = useState(null);
   const [fetchingLoc, setFetchingLoc] = useState(false);
+  const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
   const theme = {
@@ -47,35 +49,8 @@ export default function AddScreen({ navigation }) {
     placeholder: isDarkMode ? "#777" : "#999",
   };
 
-  const handleGetLocation = async () => {
-    setFetchingLoc(true);
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Allow location access to tag your entry.",
-        );
-        return;
-      }
-      let loc = await Location.getCurrentPositionAsync({});
-      let address = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
-      const placeName = address[0]
-        ? `${address[0].name || address[0].street}, ${address[0].city}`
-        : "Current Location";
-      setLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        name: placeName,
-      });
-    } catch (e) {
-      Alert.alert("Location Error", "Could not fetch location.");
-    } finally {
-      setFetchingLoc(false);
-    }
+  const handleGetLocation = () => {
+    setLocationModalVisible(true);
   };
 
   const pickImage = async () => {
@@ -363,12 +338,9 @@ export default function AddScreen({ navigation }) {
                 />
                 <Text
                   style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}
+                  numberOfLines={1}
                 >
-                  {fetchingLoc
-                    ? "Fetching..."
-                    : location
-                      ? location.name
-                      : "Tag Location"}
+                  {location ? location.name : "Tag Location"}
                 </Text>
               </View>
               {location && (
@@ -477,6 +449,13 @@ export default function AddScreen({ navigation }) {
           </Text>
         )}
       </TouchableOpacity>
+
+      <LocationPickerModal
+        visible={locationModalVisible}
+        onClose={() => setLocationModalVisible(false)}
+        onConfirm={(loc) => setLocation(loc)}
+        isDarkMode={isDarkMode}
+      />
 
       <Modal visible={!!previewImage} transparent animationType="fade">
         <View
@@ -634,7 +613,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     flex: 1,
   },
-  imagePreviewRow: { flexDirection: "row", marginTop: 15, gap: 10, paddingBottom: 15 },
+  imagePreviewRow: {
+    flexDirection: "row",
+    marginTop: 15,
+    gap: 10,
+    paddingBottom: 15,
+  },
   previewImage: { width: 70, height: 70, borderRadius: 10 },
   removeImg: { position: "absolute", top: -5, right: -5 },
   notesInput: {

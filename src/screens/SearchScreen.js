@@ -210,7 +210,7 @@ export default function SearchScreen({ navigation }) {
           t.notes?.toLowerCase().includes(q) ||
           String(t.amount).includes(q)
         )) ||
-        (searchTypes.includes("sub_category") && t.sub_category?.toLowerCase().includes(q)) ||
+        (searchTypes.includes("sub_category") && (t.sub_category?.toLowerCase().includes(q) || t.parent_category?.toLowerCase().includes(q))) ||
         (searchTypes.includes("notes") && t.notes?.toLowerCase().includes(q)) ||
         (searchTypes.includes("amount") && String(t.amount).includes(q));
       const matchesStart = !searchStartDate || txDate >= startOfDay(searchStartDate);
