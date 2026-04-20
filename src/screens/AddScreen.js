@@ -38,6 +38,7 @@ export default function AddScreen({ navigation }) {
   const [images, setImages] = useState([]);
   const [location, setLocation] = useState(null);
   const [fetchingLoc, setFetchingLoc] = useState(false);
+  const [locationOption, setLocationOption] = useState(null);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -51,6 +52,42 @@ export default function AddScreen({ navigation }) {
 
   const handleGetLocation = () => {
     setLocationModalVisible(true);
+  };
+
+  const handleUseCurrentLocation = async () => {
+    setFetchingLoc(true);
+    setLocationOption("current");
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Allow location access to tag your entry.",
+        );
+        setLocationOption(null);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      const address = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      const placeName = address[0]
+        ? `${address[0].road || address[0].name || ""}, ${address[0].city || ""}`
+            .trim()
+            .replace(/^,|,$/, "")
+        : "Current Location";
+      setLocation({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        name: placeName,
+      });
+    } catch (e) {
+      Alert.alert("Location Error", "Could not fetch your location.");
+      setLocationOption(null);
+    } finally {
+      setFetchingLoc(false);
+    }
   };
 
   const pickImage = async () => {
@@ -318,66 +355,136 @@ export default function AddScreen({ navigation }) {
           </View>
         )}
         <View style={[styles.section, { borderTopColor: theme.inputBorder }]}>
-          <View style={styles.utilRow}>
+          <Text style={[styles.label, { color: theme.text, marginBottom: 10 }]}>
+            Location{" "}
+            <Text
+              style={{
+                color: theme.placeholder,
+                fontWeight: "400",
+                fontSize: 12,
+              }}
+            >
+              (optional)
+            </Text>
+          </Text>
+
+          {/* Option Buttons */}
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
             <TouchableOpacity
-              onPress={handleGetLocation}
+              onPress={handleUseCurrentLocation}
               style={[
-                styles.utilBtn,
+                styles.locationOptionBtn,
                 {
-                  backgroundColor: theme.card,
+                  backgroundColor:
+                    locationOption === "current" ? "#4A90E222" : theme.card,
+                  borderColor:
+                    locationOption === "current"
+                      ? "#4A90E2"
+                      : theme.inputBorder,
                   flex: 1,
-                  justifyContent: "space-between",
                 },
               ]}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {fetchingLoc ? (
+                <ActivityIndicator size="small" color="#4A90E2" />
+              ) : (
                 <Ionicons
-                  name="location"
-                  size={18}
-                  color={location ? "#4A90E2" : theme.placeholder}
+                  name="navigate"
+                  size={16}
+                  color={
+                    locationOption === "current" ? "#4A90E2" : theme.placeholder
+                  }
                 />
-                <Text
-                  style={{ color: theme.text, marginLeft: 5, fontSize: 12 }}
-                  numberOfLines={1}
-                >
-                  {location ? location.name : "Tag Location"}
-                </Text>
-              </View>
-              {location && (
-                <TouchableOpacity onPress={() => setLocation(null)}>
-                  <Ionicons
-                    name="close-circle"
-                    size={18}
-                    color={theme.placeholder}
-                  />
-                </TouchableOpacity>
               )}
+              <Text
+                style={{
+                  color: locationOption === "current" ? "#4A90E2" : theme.text,
+                  fontSize: 13,
+                  marginLeft: 6,
+                  fontWeight: "600",
+                }}
+              >
+                Current
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setLocationOption("map");
+                handleGetLocation();
+              }}
+              style={[
+                styles.locationOptionBtn,
+                {
+                  backgroundColor:
+                    locationOption === "map" ? "#4A90E222" : theme.card,
+                  borderColor:
+                    locationOption === "map" ? "#4A90E2" : theme.inputBorder,
+                  flex: 1,
+                },
+              ]}
+            >
+              <Ionicons
+                name="map"
+                size={16}
+                color={locationOption === "map" ? "#4A90E2" : theme.placeholder}
+              />
+              <Text
+                style={{
+                  color: locationOption === "map" ? "#4A90E2" : theme.text,
+                  fontSize: 13,
+                  marginLeft: 6,
+                  fontWeight: "600",
+                }}
+              >
+                Pick on Map
+              </Text>
             </TouchableOpacity>
           </View>
-          <TextInput
-            style={[
-              styles.locationManualInput,
-              {
-                color: theme.text,
-                borderColor: theme.inputBorder,
-                backgroundColor: theme.card,
-              },
-            ]}
-            placeholder="Or type a location name..."
-            placeholderTextColor={theme.placeholder}
-            value={location?.name && !fetchingLoc ? location.name : ""}
-            onChangeText={(text) =>
-              setLocation(
-                text ? { latitude: null, longitude: null, name: text } : null,
-              )
-            }
-          />
+
+          {/* Location Result */}
+          {location && (
+            <View
+              style={[
+                styles.locationResult,
+                { backgroundColor: theme.card, borderColor: "#4A90E244" },
+              ]}
+            >
+              <Ionicons name="location" size={16} color="#4A90E2" />
+              <Text
+                style={{
+                  color: theme.text,
+                  fontSize: 13,
+                  flex: 1,
+                  marginLeft: 6,
+                }}
+                numberOfLines={2}
+              >
+                {location.name}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setLocation(null);
+                  setLocationOption(null);
+                }}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={theme.placeholder}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Photos */}
+        <View style={{ marginTop: 0 }}>
           <Text
             style={{
               color: theme.placeholder,
               fontSize: 12,
-              marginTop: 12,
-              marginBottom: 6,
+              marginTop: 4,
             }}
           >
             {images.length}/3 Photos (optional)
@@ -452,8 +559,14 @@ export default function AddScreen({ navigation }) {
 
       <LocationPickerModal
         visible={locationModalVisible}
-        onClose={() => setLocationModalVisible(false)}
-        onConfirm={(loc) => setLocation(loc)}
+        onClose={() => {
+          setLocationModalVisible(false);
+          if (!location) setLocationOption(null);
+        }}
+        onConfirm={(loc) => {
+          setLocation(loc);
+          setLocationOption("map");
+        }}
         isDarkMode={isDarkMode}
       />
 
@@ -556,6 +669,22 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 8,
     fontSize: 13,
+  },
+  locationOptionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+  },
+  locationResult: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
   },
   row: {
     flexDirection: "row",
