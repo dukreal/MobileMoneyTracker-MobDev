@@ -22,30 +22,38 @@ import {
   startOfDay,
 } from "date-fns";
 import { CATEGORIES } from "../constants/Categories";
+import CalendarModal from "../components/CalendarModal";
 
-const getCatIcon = (parentCategory) => {
+const getCatIcon = (parentCategory, subCategory) => {
   const found =
     CATEGORIES.expense.find((c) => c.name === parentCategory) ||
     CATEGORIES.income.find((c) => c.name === parentCategory);
-  return found
-    ? { icon: found.icon, color: found.color }
-    : { icon: "ellipse", color: "#888" };
+  if (found) return { icon: found.icon, color: found.color };
+  if (subCategory) {
+    const bySubExpense = CATEGORIES.expense.find((c) =>
+      c.subs.includes(subCategory),
+    );
+    const bySub =
+      bySubExpense ||
+      CATEGORIES.income.find((c) => c.subs.includes(subCategory));
+    if (bySub) return { icon: bySub.icon, color: bySub.color };
+  }
+  return { icon: "ellipse", color: "#888" };
 };
-import CalendarModal from "../components/CalendarModal";
-
 export default function ChartsScreen({ navigation }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("month");
   const [selectedSlice, setSelectedSlice] = useState(null);
+  const [chartType, setChartType] = useState("expense"); // 'expense' | 'income'
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [calendarVisible, setCalendarVisible] = useState(false);
   const { isGuest, isDarkMode, currency } = useStore();
 
   const theme = {
-    bg: isDarkMode ? "#0f0f0f" : "#f2f2f7",
-    surface: isDarkMode ? "#1c1c1e" : "#ffffff",
-    surface2: isDarkMode ? "#2c2c2e" : "#f2f2f7",
+    bg: isDarkMode ? "#121212" : "#ffffff",
+    surface: isDarkMode ? "#1e1e1e" : "#f9f9f9",
+    surface2: isDarkMode ? "#1e1e1e" : "#f9f9f9",
     text: isDarkMode ? "#ffffff" : "#000000",
     subText: isDarkMode ? "#8e8e93" : "#8e8e93",
     border: isDarkMode ? "#38383a" : "#e5e5ea",
@@ -101,16 +109,84 @@ export default function ChartsScreen({ navigation }) {
   );
   const netBalance = totalIncome - totalExpense;
 
+  const MONTH_COLORS = [
+    "#4A90E2",
+    "#2ECC71",
+    "#FF6B6B",
+    "#AF52DE",
+    "#FF9500",
+    "#5AC8FA",
+    "#FF2D55",
+    "#34C759",
+    "#5856D6",
+    "#FFCC00",
+    "#FF3B30",
+    "#007AFF",
+  ];
+
   const pieData = useMemo(() => {
-    if (expenseTxs.length === 0) return [];
+    const sourceTxs = chartType === "expense" ? expenseTxs : incomeTxs;
+    if (sourceTxs.length === 0) return [];
+
+    if (viewMode === "year") {
+      const now = new Date();
+      const monthlyData = [];
+      MONTH_COLORS.forEach((color, i) => {
+        const monthTxs = sourceTxs.filter(
+          (t) => new Date(t.created_at).getMonth() === i,
+        );
+        const total = monthTxs.reduce((s, t) => s + Number(t.amount), 0);
+        if (total > 0) {
+          monthlyData.push({
+            value: total,
+            color,
+            text: "",
+            label: [
+              "Jan",
+              "Feb",
+              "Mar",
+              "Apr",
+              "May",
+              "Jun",
+              "Jul",
+              "Aug",
+              "Sep",
+              "Oct",
+              "Nov",
+              "Dec",
+            ][i],
+            focused:
+              selectedSlice?.label ===
+              [
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+              ][i],
+          });
+        }
+      });
+      return monthlyData;
+    }
+
     const grouped = {};
-    expenseTxs.forEach((t) => {
+    sourceTxs.forEach((t) => {
       const cat = t.parent_category || "Other";
       if (!grouped[cat]) grouped[cat] = 0;
       grouped[cat] += Number(t.amount);
     });
     const getCatColor = (name) => {
-      const found = CATEGORIES.expense.find((c) => c.name === name);
+      const found =
+        CATEGORIES.expense.find((c) => c.name === name) ||
+        CATEGORIES.income.find((c) => c.name === name);
       return found?.color || "#888";
     };
     const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
@@ -133,7 +209,7 @@ export default function ChartsScreen({ navigation }) {
       });
     }
     return result;
-  }, [expenseTxs, selectedSlice]);
+  }, [expenseTxs, incomeTxs, selectedSlice, chartType, viewMode]);
 
   const periodLabel = useMemo(() => {
     const now = new Date();
@@ -146,20 +222,43 @@ export default function ChartsScreen({ navigation }) {
     return String(now.getFullYear());
   }, [viewMode, selectedMonth]);
 
+  const MONTHS_LABEL = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
   const drillTxs = useMemo(() => {
+    const sourceTxs = chartType === "expense" ? expenseTxs : incomeTxs;
     if (!selectedSlice) return [];
+    if (viewMode === "year") {
+      const monthIndex = MONTHS_LABEL.indexOf(selectedSlice.label);
+      if (monthIndex === -1) return [];
+      return sourceTxs
+        .filter((t) => new Date(t.created_at).getMonth() === monthIndex)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
     if (selectedSlice.label === "Others") {
       const top5Labels = [...pieData]
         .filter((i) => i.label !== "Others")
         .map((i) => i.label);
-      return expenseTxs
+      return sourceTxs
         .filter((t) => !top5Labels.includes(t.parent_category))
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
-    return expenseTxs
+    return sourceTxs
       .filter((t) => t.parent_category === selectedSlice.label)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [selectedSlice, expenseTxs, pieData]);
+  }, [selectedSlice, expenseTxs, incomeTxs, pieData, chartType, viewMode]);
 
   if (isGuest) {
     return (
@@ -223,7 +322,7 @@ export default function ChartsScreen({ navigation }) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 60 }}
+        contentContainerStyle={{ paddingBottom: 10 }}
       >
         {/* SEGMENT TOGGLE */}
         <View
@@ -234,14 +333,7 @@ export default function ChartsScreen({ navigation }) {
               key={mode}
               style={[
                 styles.segmentBtn,
-                viewMode === mode && {
-                  backgroundColor: theme.surface,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.08,
-                  shadowRadius: 4,
-                  shadowOffset: { width: 0, height: 2 },
-                  elevation: 2,
-                },
+                viewMode === mode && { backgroundColor: "#ffffff" },
               ]}
               onPress={() => {
                 setViewMode(mode);
@@ -252,7 +344,7 @@ export default function ChartsScreen({ navigation }) {
                 style={[
                   styles.segmentText,
                   {
-                    color: viewMode === mode ? theme.text : theme.subText,
+                    color: viewMode === mode ? "#000000" : theme.subText,
                     fontWeight: viewMode === mode ? "700" : "500",
                   },
                 ]}
@@ -264,7 +356,7 @@ export default function ChartsScreen({ navigation }) {
         </View>
 
         {/* SUMMARY ROW */}
-        <View style={[styles.summaryRow, { backgroundColor: theme.surface }]}>
+        <View style={[styles.summaryRow, { backgroundColor: theme.surface2 }]}>
           <View style={styles.summaryCol}>
             <Text style={styles.summaryLabel}>Income</Text>
             <Text
@@ -290,12 +382,9 @@ export default function ChartsScreen({ navigation }) {
             </Text>
           </View>
           <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>Net</Text>
+            <Text style={styles.summaryLabel}>Balance</Text>
             <Text
-              style={[
-                styles.summaryVal,
-                { color: netBalance >= 0 ? "#2ECC71" : "#FF6B6B" },
-              ]}
+              style={[styles.summaryVal, { color: theme.text }]}
               numberOfLines={1}
             >
               {netBalance >= 0 ? "+" : "-"}
@@ -313,11 +402,61 @@ export default function ChartsScreen({ navigation }) {
           <View style={styles.chartHeaderRow}>
             <View>
               <Text style={[styles.chartTitle, { color: theme.text }]}>
-                Expense Breakdown
+                {chartType === "expense" ? "Expense" : "Income"} Breakdown
               </Text>
               <Text style={[styles.chartSub, { color: theme.subText }]}>
                 Top categories this period
               </Text>
+            </View>
+            {/* Expense / Income toggle */}
+            <View
+              style={[
+                styles.chartTypeToggle,
+                {
+                  backgroundColor: theme.surface2,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={[
+                  styles.chartTypeBtn,
+                  chartType === "expense" && { backgroundColor: "#FF6B6B" },
+                ]}
+                onPress={() => {
+                  setChartType("expense");
+                  setSelectedSlice(null);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.chartTypeBtnText,
+                    { color: chartType === "expense" ? "#fff" : theme.subText },
+                  ]}
+                >
+                  Expense
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.chartTypeBtn,
+                  chartType === "income" && { backgroundColor: "#2ECC71" },
+                ]}
+                onPress={() => {
+                  setChartType("income");
+                  setSelectedSlice(null);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.chartTypeBtnText,
+                    { color: chartType === "income" ? "#fff" : theme.subText },
+                  ]}
+                >
+                  Income
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -342,10 +481,11 @@ export default function ChartsScreen({ navigation }) {
                 />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                No Expenses
+                No {chartType === "expense" ? "Expenses" : "Income"}
               </Text>
               <Text style={[styles.emptyText, { color: theme.subText }]}>
-                No expense records for this period
+                No {chartType === "expense" ? "expense" : "income"} records for
+                this period
               </Text>
             </View>
           ) : (
@@ -384,12 +524,19 @@ export default function ChartsScreen({ navigation }) {
                               { color: selectedSlice.color },
                             ]}
                           >
-                            {totalExpense > 0
-                              ? (
-                                  (selectedSlice.value / totalExpense) *
-                                  100
-                                ).toFixed(1)
-                              : 0}
+                            {chartType === "expense"
+                              ? totalExpense > 0
+                                ? (
+                                    (selectedSlice.value / totalExpense) *
+                                    100
+                                  ).toFixed(1)
+                                : 0
+                              : totalIncome > 0
+                                ? (
+                                    (selectedSlice.value / totalIncome) *
+                                    100
+                                  ).toFixed(1)
+                                : 0}
                             %
                           </Text>
                         </>
@@ -400,14 +547,17 @@ export default function ChartsScreen({ navigation }) {
                             numberOfLines={1}
                           >
                             {currency}
-                            {totalExpense.toLocaleString(undefined, {
+                            {(chartType === "expense"
+                              ? totalExpense
+                              : totalIncome
+                            ).toLocaleString(undefined, {
                               minimumFractionDigits: 0,
                             })}
                           </Text>
                           <Text
                             style={[styles.centerSub, { color: theme.subText }]}
                           >
-                            Expenses
+                            {chartType === "expense" ? "Expenses" : "Income"}
                           </Text>
                         </>
                       )}
@@ -419,9 +569,13 @@ export default function ChartsScreen({ navigation }) {
                 <View style={styles.inlineLegend}>
                   {sortedPieData.map((item) => {
                     const pct =
-                      totalExpense > 0
-                        ? ((item.value / totalExpense) * 100).toFixed(1)
-                        : 0;
+                      chartType === "expense"
+                        ? totalExpense > 0
+                          ? ((item.value / totalExpense) * 100).toFixed(1)
+                          : 0
+                        : totalIncome > 0
+                          ? ((item.value / totalIncome) * 100).toFixed(1)
+                          : 0;
                     const isSelected = selectedSlice?.label === item.label;
                     return (
                       <TouchableOpacity
@@ -466,6 +620,38 @@ export default function ChartsScreen({ navigation }) {
         </View>
 
         {/* DRILL DOWN */}
+        {!selectedSlice && (
+          <View
+            style={[
+              styles.drillCard,
+              {
+                backgroundColor: theme.surface,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 30,
+              },
+            ]}
+          >
+            <Ionicons
+              name="pie-chart-outline"
+              size={32}
+              color={theme.subText}
+            />
+            <Text
+              style={[
+                styles.drillTitle,
+                {
+                  color: theme.subText,
+                  marginTop: 10,
+                  fontWeight: "600",
+                  fontSize: 14,
+                },
+              ]}
+            >
+              Tap a slice to see transactions
+            </Text>
+          </View>
+        )}
         {selectedSlice && drillTxs.length > 0 && (
           <View style={[styles.drillCard, { backgroundColor: theme.surface }]}>
             {/* Drill Header */}
@@ -485,7 +671,11 @@ export default function ChartsScreen({ navigation }) {
                   ]}
                 >
                   <Ionicons
-                    name={getCatIcon(selectedSlice.label).icon}
+                    name={
+                      selectedSlice.label === "Others"
+                        ? "grid-outline"
+                        : getCatIcon(selectedSlice.label).icon
+                    }
                     size={16}
                     color={selectedSlice.color}
                   />
@@ -532,15 +722,46 @@ export default function ChartsScreen({ navigation }) {
                     styles.txIconCircle,
                     {
                       backgroundColor:
-                        getCatIcon(tx.parent_category).color + "22",
+                        getCatIcon(tx.parent_category, tx.sub_category).color +
+                        "22",
                     },
                   ]}
                 >
                   <Ionicons
-                    name={tx.type === "income" ? "arrow-up" : "arrow-down"}
+                    name={
+                      selectedSlice.label === "Others"
+                        ? getCatIcon(tx.parent_category, tx.sub_category).icon
+                        : tx.type === "income"
+                          ? "arrow-up"
+                          : "arrow-down"
+                    }
                     size={16}
-                    color={getCatIcon(tx.parent_category).color}
+                    color={
+                      getCatIcon(tx.parent_category, tx.sub_category).color
+                    }
                   />
+                  {selectedSlice.label === "Others" && (
+                    <View
+                      style={{
+                        position: "absolute",
+                        bottom: -3,
+                        right: -3,
+                        backgroundColor:
+                          tx.type === "income" ? "#2ECC71" : "#FF6B6B",
+                        borderRadius: 6,
+                        width: 13,
+                        height: 13,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name={tx.type === "income" ? "arrow-up" : "arrow-down"}
+                        size={8}
+                        color="#fff"
+                      />
+                    </View>
+                  )}
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text
@@ -556,8 +777,14 @@ export default function ChartsScreen({ navigation }) {
                   </Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={[styles.txAmount, { color: "#FF6B6B" }]}>
-                    -{currency}
+                  <Text
+                    style={[
+                      styles.txAmount,
+                      { color: tx.type === "income" ? "#2ECC71" : "#FF6B6B" },
+                    ]}
+                  >
+                    {tx.type === "income" ? "+" : "-"}
+                    {currency}
                     {Number(tx.amount).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                     })}
@@ -645,16 +872,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 20,
   },
+  chartTypeToggle: {
+    flexDirection: "row",
+    borderRadius: 12,
+    padding: 4,
+    gap: 3,
+  },
+  chartTypeBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  chartTypeBtnText: { fontSize: 12, fontWeight: "700" },
   chartTitle: { fontSize: 16, fontWeight: "800" },
   chartSub: { fontSize: 11, marginTop: 2 },
-  totalBadge: {
-    borderRadius: 12,
-    padding: 10,
-    alignItems: "center",
-    minWidth: 70,
-  },
-  totalBadgeLabel: { fontSize: 10, fontWeight: "600" },
-  totalBadgeAmount: { fontSize: 14, fontWeight: "800", marginTop: 2 },
 
   // Empty
   emptyChart: { alignItems: "center", paddingVertical: 40, gap: 10 },
@@ -702,16 +929,6 @@ const styles = StyleSheet.create({
   legendDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
   legendName: { fontSize: 12, fontWeight: "600" },
   legendPct: { fontSize: 11, marginTop: 1 },
-
-  // Category bars
-  categoryBars: { borderTopWidth: 1, paddingTop: 16, gap: 12 },
-  catBarRow: { gap: 6 },
-  catBarLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  catBarDot: { width: 8, height: 8, borderRadius: 4 },
-  catBarName: { flex: 1, fontSize: 12, fontWeight: "600" },
-  catBarAmount: { fontSize: 12, fontWeight: "600" },
-  catBarTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
-  catBarFill: { height: 6, borderRadius: 3 },
 
   // Drill down
   drillCard: {
