@@ -27,19 +27,16 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isSameDay,
-  addYears,
-  subYears,
   isSameMonth,
-  setMonth,
   getYear,
   getMonth,
   startOfDay,
   startOfWeek,
-  endOfWeek,
   isAfter,
 } from "date-fns";
 
 import { Ionicons } from "@expo/vector-icons";
+import CalendarModal from "../components/CalendarModal";
 
 const MONTHS = [
   "Jan",
@@ -55,168 +52,6 @@ const MONTHS = [
   "Nov",
   "Dec",
 ];
-
-// --- 1. CALENDAR MODAL ---
-function CalendarModal({
-  visible,
-  onClose,
-  currentDate,
-  onSelectDate,
-  isDarkMode,
-}) {
-  const [viewDate, setViewDate] = useState(currentDate);
-  useEffect(() => {
-    if (visible) setViewDate(currentDate);
-  }, [visible, currentDate]);
-
-  const today = startOfDay(new Date());
-  const year = getYear(viewDate);
-  const month = getMonth(viewDate);
-  const currentYear = getYear(today);
-
-  const calendarDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 0 });
-    const end = endOfWeek(endOfMonth(viewDate), { weekStartsOn: 0 });
-    return eachDayOfInterval({ start, end });
-  }, [viewDate]);
-
-  const isFutureDay = (day) => isAfter(startOfDay(day), today);
-  const isFutureMonth = (monthIndex) => {
-    const testDate = setMonth(new Date(year, 0, 1), monthIndex);
-    return isAfter(startOfMonth(testDate), startOfMonth(today));
-  };
-  const isFutureYear = year > currentYear;
-
-  const textColor = isDarkMode ? "#fff" : "#000";
-  const activeBlue = "#0081db";
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <Pressable style={styles.fullCloseOverlay} onPress={onClose} />
-        <Pressable
-          style={[
-            styles.calendarSheet,
-            {
-              backgroundColor: isDarkMode ? "#121212" : "#fff",
-              borderColor: isDarkMode ? "#333" : "#eee",
-            },
-          ]}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <View style={styles.handle} />
-          <View style={styles.calNavRow}>
-            <TouchableOpacity
-              onPress={() => setViewDate(subYears(viewDate, 1))}
-            >
-              <Ionicons name="chevron-back" size={24} color={textColor} />
-            </TouchableOpacity>
-            <Text style={[styles.calNavTitle, { color: textColor }]}>
-              {year}
-            </Text>
-            <TouchableOpacity
-              onPress={() =>
-                !isFutureYear && setViewDate(addYears(viewDate, 1))
-              }
-              disabled={isFutureYear}
-            >
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={isFutureYear ? "#444" : textColor}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.monthGrid}>
-            {MONTHS.map((m, i) => {
-              const futureMonth = isFutureMonth(i);
-              return (
-                <View key={m} style={styles.monthColumn}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      !futureMonth && setViewDate(setMonth(viewDate, i))
-                    }
-                    disabled={futureMonth}
-                    style={[
-                      styles.monthPill,
-                      i === month && {
-                        backgroundColor: isDarkMode ? "#222" : "#f0f0f0",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: futureMonth
-                          ? "#444"
-                          : i === month && year === getYear(today)
-                            ? activeBlue
-                            : "#666",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {m}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.dayGrid}>
-            {calendarDays.map((day, i) => {
-              const future = isFutureDay(day);
-              return (
-                <View key={i} style={styles.dayColumn}>
-                  {isSameMonth(day, viewDate) ? (
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (future) return;
-                        onSelectDate(day);
-                        onClose();
-                      }}
-                      disabled={future}
-                      style={[
-                        styles.dayCell,
-                        isSameDay(day, currentDate) && {
-                          backgroundColor: activeBlue,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dayNum,
-                          {
-                            color: future
-                              ? "#444"
-                              : isSameDay(day, currentDate)
-                                ? "#fff"
-                                : isSameDay(day, today)
-                                  ? activeBlue
-                                  : textColor,
-                          },
-                        ]}
-                      >
-                        {format(day, "d")}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-              );
-            })}
-          </View>
-          <TouchableOpacity onPress={onClose} style={styles.doneBtn}>
-            <Text style={{ color: activeBlue, fontWeight: "bold" }}>Done</Text>
-          </TouchableOpacity>
-        </Pressable>
-      </View>
-    </Modal>
-  );
-}
 
 // --- 2. TRANSACTION ITEM ---
 function TransactionItem({
@@ -439,60 +274,60 @@ export default function HomeScreen({ navigation, route }) {
 
       {/* MAIN VIEW: DATE STRIP */}
       <View style={[styles.dateStrip, { borderColor: theme.border }]}>
-          <ScrollView
-            ref={scrollRef}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          >
-            {daysInMonth.map((day, index) => {
-              const isSelected = isSameDay(day, selectedDate);
-              return (
-                <TouchableOpacity
-                  key={index}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        >
+          {daysInMonth.map((day, index) => {
+            const isSelected = isSameDay(day, selectedDate);
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.dateItem,
+                  isSelected && {
+                    backgroundColor: isDarkMode ? "#fff" : "#000",
+                  },
+                ]}
+                onPress={() => {
+                  selectionSource.current = "strip";
+                  setSelectedDate(day);
+                }}
+              >
+                <Text
                   style={[
-                    styles.dateItem,
-                    isSelected && {
-                      backgroundColor: isDarkMode ? "#fff" : "#000",
+                    styles.dateDay,
+                    {
+                      color: isSelected
+                        ? isDarkMode
+                          ? "#000"
+                          : "#fff"
+                        : theme.subText,
                     },
                   ]}
-                  onPress={() => {
-                    selectionSource.current = "strip";
-                    setSelectedDate(day);
-                  }}
                 >
-                  <Text
-                    style={[
-                      styles.dateDay,
-                      {
-                        color: isSelected
-                          ? isDarkMode
-                            ? "#000"
-                            : "#fff"
-                          : theme.subText,
-                      },
-                    ]}
-                  >
-                    {format(day, "EEE")}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dateNum,
-                      {
-                        color: isSelected
-                          ? isDarkMode
-                            ? "#000"
-                            : "#fff"
-                          : theme.text,
-                      },
-                    ]}
-                  >
-                    {format(day, "d")}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+                  {format(day, "EEE")}
+                </Text>
+                <Text
+                  style={[
+                    styles.dateNum,
+                    {
+                      color: isSelected
+                        ? isDarkMode
+                          ? "#000"
+                          : "#fff"
+                        : theme.text,
+                    },
+                  ]}
+                >
+                  {format(day, "d")}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {/* SUMMARY */}
       <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
@@ -667,62 +502,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    justifyContent: "flex-end",
-  },
-  calendarSheet: {
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-    borderWidth: 1,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#333",
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  calNavRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  calNavTitle: { fontSize: 22, fontWeight: "800", marginHorizontal: 30 },
-  monthGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 10 },
-  monthColumn: {
-    width: "25%",
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  monthPill: {
-    width: "90%",
-    height: "85%",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  divider: { height: 1, backgroundColor: "#222", marginVertical: 15 },
-  dayGrid: { flexDirection: "row", flexWrap: "wrap" },
-  dayColumn: {
-    width: "14.28%",
-    height: 48,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dayCell: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  dayNum: { fontSize: 16, fontWeight: "700" },
   doneBtn: { alignItems: "center", marginTop: 10 },
-  fullCloseOverlay: { ...StyleSheet.absoluteFillObject },
 });

@@ -89,7 +89,7 @@ function MainTabs() {
       <Tab.Screen
         name="Charts"
         component={ChartsScreen}
-        options={{ title: "Analytics" }}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Profile"
