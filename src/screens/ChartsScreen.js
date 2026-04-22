@@ -23,6 +23,7 @@ import {
 } from "date-fns";
 import { CATEGORIES } from "../constants/Categories";
 import CalendarModal from "../components/CalendarModal";
+import WeekPickerModal from "../components/WeekPickerModal";
 
 const getCatIcon = (parentCategory, subCategory) => {
   const found =
@@ -48,6 +49,10 @@ export default function ChartsScreen({ navigation }) {
   const [chartType, setChartType] = useState("expense"); // 'expense' | 'income'
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [weekPickerVisible, setWeekPickerVisible] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 1 }),
+  );
   const { isGuest, isDarkMode, currency } = useStore();
 
   const theme = {
@@ -84,12 +89,13 @@ export default function ChartsScreen({ navigation }) {
     const now = new Date();
     return transactions.filter((t) => {
       const d = new Date(t.created_at);
-      if (viewMode === "week") return isSameWeek(d, now, { weekStartsOn: 1 });
+      if (viewMode === "week")
+        return isSameWeek(d, selectedWeek, { weekStartsOn: 1 });
       if (viewMode === "month") return isSameMonth(d, selectedMonth);
       if (viewMode === "year") return d.getFullYear() === now.getFullYear();
       return true;
     });
-  }, [transactions, viewMode, selectedMonth]);
+  }, [transactions, viewMode, selectedMonth, selectedWeek]);
 
   const expenseTxs = useMemo(
     () => filteredTxs.filter((t) => t.type === "expense"),
@@ -142,34 +148,34 @@ export default function ChartsScreen({ navigation }) {
             color,
             text: "",
             label: [
-              "Jan",
-              "Feb",
-              "Mar",
-              "Apr",
+              "January",
+              "February",
+              "March",
+              "April",
               "May",
-              "Jun",
-              "Jul",
-              "Aug",
-              "Sep",
-              "Oct",
-              "Nov",
-              "Dec",
+              "June",
+              "July",
+              "August",
+              "September",
+              "October",
+              "November",
+              "December",
             ][i],
             focused:
               selectedSlice?.label ===
               [
-                "Jan",
-                "Feb",
-                "Mar",
-                "Apr",
+                "January",
+                "February",
+                "March",
+                "April",
                 "May",
-                "Jun",
-                "Jul",
-                "Aug",
-                "Sep",
-                "Oct",
-                "Nov",
-                "Dec",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December",
               ][i],
           });
         }
@@ -190,8 +196,8 @@ export default function ChartsScreen({ navigation }) {
       return found?.color || "#888";
     };
     const sorted = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
-    const top5 = sorted.slice(0, 5);
-    const othersTotal = sorted.slice(5).reduce((s, [, v]) => s + v, 0);
+    const top5 = sorted.slice(0, 4);
+    const othersTotal = sorted.slice(4).reduce((s, [, v]) => s + v, 0);
     const result = top5.map(([name, value]) => ({
       value,
       color: getCatColor(name),
@@ -214,27 +220,27 @@ export default function ChartsScreen({ navigation }) {
   const periodLabel = useMemo(() => {
     const now = new Date();
     if (viewMode === "week") {
-      const ws = startOfWeek(now, { weekStartsOn: 1 });
-      const we = endOfWeek(now, { weekStartsOn: 1 });
-      return `${format(ws, "MMM d")} – ${format(we, "MMM d, yyyy")}`;
+      const ws = selectedWeek;
+      const we = endOfWeek(selectedWeek, { weekStartsOn: 1 });
+      return `${format(ws, "MMMM d")} – ${format(we, "MMMM d, yyyy")}`;
     }
     if (viewMode === "month") return format(selectedMonth, "MMMM yyyy");
     return String(now.getFullYear());
-  }, [viewMode, selectedMonth]);
+  }, [viewMode, selectedMonth, selectedWeek]);
 
   const MONTHS_LABEL = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
+    "January",
+    "February",
+    "March",
+    "April",
     "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const drillTxs = useMemo(() => {
@@ -307,6 +313,16 @@ export default function ChartsScreen({ navigation }) {
           <TouchableOpacity
             style={styles.periodBtn}
             onPress={() => setCalendarVisible(true)}
+          >
+            <Text style={[styles.periodLabel, { color: theme.accent }]}>
+              {periodLabel}
+            </Text>
+            <Ionicons name="chevron-down" size={13} color={theme.accent} />
+          </TouchableOpacity>
+        ) : viewMode === "week" ? (
+          <TouchableOpacity
+            style={styles.periodBtn}
+            onPress={() => setWeekPickerVisible(true)}
           >
             <Text style={[styles.periodLabel, { color: theme.accent }]}>
               {periodLabel}
@@ -461,13 +477,23 @@ export default function ChartsScreen({ navigation }) {
           </View>
 
           {loading ? (
-            <ActivityIndicator
-              size="large"
-              color={theme.accent}
-              style={{ marginVertical: 50 }}
-            />
+            <View
+              style={{
+                height: 242,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <ActivityIndicator size="large" color={theme.accent} />
+            </View>
           ) : pieData.length === 0 ? (
-            <View style={styles.emptyChart}>
+            <View
+              style={{
+                height: 242,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <View
                 style={[
                   styles.emptyIconCircle,
@@ -491,7 +517,7 @@ export default function ChartsScreen({ navigation }) {
           ) : (
             <>
               {/* Pie + Legend side by side */}
-              <View style={styles.pieAndLegendRow}>
+              <View style={[styles.pieAndLegendRow, { minHeight: 222 }]}>
                 <PieChart
                   data={pieData}
                   donut
@@ -809,6 +835,16 @@ export default function ChartsScreen({ navigation }) {
         }}
         isDarkMode={isDarkMode}
         hideDays
+      />
+      <WeekPickerModal
+        visible={weekPickerVisible}
+        onClose={() => setWeekPickerVisible(false)}
+        currentWeek={selectedWeek}
+        onSelectWeek={(week) => {
+          setSelectedWeek(week);
+          setSelectedSlice(null);
+        }}
+        isDarkMode={isDarkMode}
       />
     </View>
   );
