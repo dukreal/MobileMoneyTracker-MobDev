@@ -10,6 +10,7 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  Animated,
 } from "react-native";
 import LocationPickerModal from "../components/LocationPickerModal";
 
@@ -37,8 +38,43 @@ export default function AddScreen({ navigation }) {
   const [catSheetVisible, setCatSheetVisible] = useState(false);
   const [sheetCat, setSheetCat] = useState(null);
   const [sheetSub, setSheetSub] = useState(null);
-  const openSheet = () => setCatSheetVisible(true);
-  const closeSheet = () => setCatSheetVisible(false);
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = useRef(new Animated.Value(300)).current;
+
+  const openSheet = () => {
+    setCatSheetVisible(true);
+    Animated.parallel([
+      Animated.timing(overlayOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sheetTranslateY, {
+        toValue: 0,
+        damping: 20,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeSheet = () => {
+    Animated.parallel([
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetTranslateY, {
+        toValue: 300,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setCatSheetVisible(false);
+      overlayOpacity.setValue(0);
+      sheetTranslateY.setValue(300);
+    });
+  };
 
   const [images, setImages] = useState([]);
   const [location, setLocation] = useState(null);
@@ -206,7 +242,9 @@ export default function AddScreen({ navigation }) {
           },
         ]}
       >
-        <Text style={[styles.heroLabel, { color: theme.text }]}>Add Transaction</Text>
+        <Text style={[styles.heroLabel, { color: theme.text }]}>
+          Add Transaction
+        </Text>
 
         {/* Type Toggle */}
         <View style={styles.heroToggle}>
@@ -298,8 +336,8 @@ export default function AddScreen({ navigation }) {
         />
         <Text style={[styles.label, { color: theme.text }]}>Category</Text>
 
-        {/* Selected category display */}
-        {selectedCat && (
+        {/* Selected category display — always visible */}
+        {selectedCat ? (
           <TouchableOpacity
             style={[
               styles.selectedCatBar,
@@ -344,6 +382,35 @@ export default function AddScreen({ navigation }) {
               color={theme.placeholder}
             />
           </TouchableOpacity>
+        ) : (
+          <View
+            style={[
+              styles.selectedCatBar,
+              { backgroundColor: theme.card, borderColor: theme.inputBorder },
+            ]}
+          >
+            <View
+              style={[styles.selectedCatIcon, { backgroundColor: theme.card }]}
+            >
+              <Ionicons
+                name="grid-outline"
+                size={20}
+                color={theme.placeholder}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text
+                style={[styles.selectedCatName, { color: theme.placeholder }]}
+              >
+                No category selected
+              </Text>
+              <Text
+                style={[styles.selectedCatSub, { color: theme.placeholder }]}
+              >
+                Please select a category to continue
+              </Text>
+            </View>
+          </View>
         )}
 
         <View style={styles.catGrid}>
@@ -585,65 +652,109 @@ export default function AddScreen({ navigation }) {
       <Modal
         visible={catSheetVisible}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={closeSheet}
       >
-        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={closeSheet}>
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-          <View style={[styles.sheetContainer, { backgroundColor: theme.bg }]}>
-            {/* Handle */}
-            <View style={[styles.sheetHandle, { backgroundColor: isDarkMode ? "#444" : "#ddd" }]} />
-
-            {/* Sheet Header */}
-            {sheetCat && (
-              <View style={styles.sheetHeader}>
-                <View style={[styles.sheetIconCircle, { backgroundColor: sheetCat.color + "22" }]}>
-                  <Ionicons name={sheetCat.icon} size={24} color={sheetCat.color} />
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.sheetTitle, { color: theme.text }]}>{sheetCat.name}</Text>
-                  <Text style={[styles.sheetSubtitle, { color: theme.placeholder }]}>Select a sub-category</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Sub-category grid */}
-            <View style={styles.sheetSubGrid}>
-              {sheetCat?.subs.map((sub) => (
-                <TouchableOpacity
-                  key={sub}
-                  style={[
-                    styles.sheetSubItem,
-                    {
-                      backgroundColor: sheetSub === sub ? sheetCat.color + "22" : theme.card,
-                      borderColor: sheetSub === sub ? sheetCat.color : "transparent",
-                      borderWidth: 1.5,
-                    },
-                  ]}
-                  onPress={() => setSheetSub(sub)}
-                >
-                  <Text style={{ color: sheetSub === sub ? sheetCat.color : theme.text, fontSize: 13, fontWeight: "600" }}>
-                    {sub}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Confirm Button */}
-            <TouchableOpacity
-              style={[styles.sheetConfirmBtn, { opacity: sheetSub ? 1 : 0.4 }]}
-              disabled={!sheetSub}
-              onPress={() => {
-                setSelectedCat(sheetCat);
-                setSelectedSub(sheetSub);
-                closeSheet();
-              }}
+        <Animated.View
+          style={[styles.sheetOverlay, { opacity: overlayOpacity }]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeSheet}
+          />
+          <Animated.View
+            style={{ transform: [{ translateY: sheetTranslateY }] }}
+          >
+            <View
+              style={[styles.sheetContainer, { backgroundColor: theme.bg }]}
             >
-              <Text style={styles.sheetConfirmText}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+              {/* Handle */}
+              <View
+                style={[
+                  styles.sheetHandle,
+                  { backgroundColor: isDarkMode ? "#444" : "#ddd" },
+                ]}
+              />
+
+              {/* Sheet Header */}
+              {sheetCat && (
+                <View style={styles.sheetHeader}>
+                  <View
+                    style={[
+                      styles.sheetIconCircle,
+                      { backgroundColor: sheetCat.color + "22" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={sheetCat.icon}
+                      size={24}
+                      color={sheetCat.color}
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={[styles.sheetTitle, { color: theme.text }]}>
+                      {sheetCat.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sheetSubtitle,
+                        { color: theme.placeholder },
+                      ]}
+                    >
+                      Select a sub-category
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Sub-category grid */}
+              <View style={styles.sheetSubGrid}>
+                {sheetCat?.subs.map((sub) => (
+                  <TouchableOpacity
+                    key={sub}
+                    style={[
+                      styles.sheetSubItem,
+                      {
+                        backgroundColor:
+                          sheetSub === sub ? sheetCat.color + "22" : theme.card,
+                        borderColor:
+                          sheetSub === sub ? sheetCat.color : "transparent",
+                        borderWidth: 1.5,
+                      },
+                    ]}
+                    onPress={() => setSheetSub(sub)}
+                  >
+                    <Text
+                      style={{
+                        color: sheetSub === sub ? sheetCat.color : theme.text,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {sub}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Confirm Button */}
+              <TouchableOpacity
+                style={[
+                  styles.sheetConfirmBtn,
+                  { opacity: sheetSub ? 1 : 0.4 },
+                ]}
+                disabled={!sheetSub}
+                onPress={() => {
+                  setSelectedCat(sheetCat);
+                  setSelectedSub(sheetSub);
+                  closeSheet();
+                }}
+              >
+                <Text style={styles.sheetConfirmText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
 
       <LocationPickerModal
