@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -50,10 +51,43 @@ export default function CalendarModal({
   isDarkMode,
   hideDays,
 }) {
+  const handleClose = () => {
+    Animated.parallel([
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetTranslateY, {
+        toValue: 300,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onClose());
+  };
   const [viewDate, setViewDate] = useState(currentDate);
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = useRef(new Animated.Value(300)).current;
 
   useEffect(() => {
-    if (visible) setViewDate(currentDate);
+    if (visible) {
+      setViewDate(currentDate);
+      Animated.parallel([
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(sheetTranslateY, {
+          toValue: 0,
+          damping: 20,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      overlayOpacity.setValue(0);
+      sheetTranslateY.setValue(300);
+    }
   }, [visible, currentDate]);
 
   const today = startOfDay(new Date());
@@ -89,142 +123,174 @@ export default function CalendarModal({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      animationType="none"
+      onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+      <Animated.View style={[styles.modalOverlay, { opacity: overlayOpacity }]}>
         <Pressable
-          style={[
-            styles.calendarSheet,
-            { backgroundColor: theme.bg, borderColor: theme.border },
-          ]}
-          onPress={(e) => e.stopPropagation()}
-        >
-          {/* Handle */}
-          <View style={[styles.handle, { backgroundColor: theme.handle }]} />
+          style={StyleSheet.absoluteFillObject}
+          onPress={handleClose}
+        />
+        <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
+          <Pressable
+            style={[
+              styles.calendarSheet,
+              { backgroundColor: theme.bg, borderColor: theme.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <View style={[styles.handle, { backgroundColor: theme.handle }]} />
 
-          {/* Year Navigation */}
-          <View style={styles.calNavRow}>
-            <TouchableOpacity
-              onPress={() => setViewDate(subYears(viewDate, 1))}
-            >
-              <Ionicons name="chevron-back" size={24} color={theme.text} />
-            </TouchableOpacity>
-            <Text style={[styles.calNavTitle, { color: theme.text }]}>
-              {year}
-            </Text>
-            <TouchableOpacity
-              onPress={() =>
-                !isFutureYear && setViewDate(addYears(viewDate, 1))
-              }
-              disabled={isFutureYear}
-            >
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={isFutureYear ? theme.subText : theme.text}
-              />
-            </TouchableOpacity>
-          </View>
+            {/* Year Navigation */}
+            <View style={styles.calNavRow}>
+              <TouchableOpacity
+                onPress={() => setViewDate(subYears(viewDate, 1))}
+              >
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.calNavTitle, { color: theme.text }]}>
+                {year}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  !isFutureYear && setViewDate(addYears(viewDate, 1))
+                }
+                disabled={isFutureYear}
+              >
+                <Ionicons
+                  name="chevron-forward"
+                  size={24}
+                  color={isFutureYear ? theme.subText : theme.text}
+                />
+              </TouchableOpacity>
+            </View>
 
-          {/* Month Grid */}
-          <View style={styles.monthGrid}>
-            {MONTHS.map((m, i) => {
-              const futureMonth = isFutureMonth(i);
-              const isSelected = i === month;
-              return (
-                <View key={m} style={styles.monthColumn}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (futureMonth) return;
-                      const newDate = setMonth(viewDate, i);
-                      setViewDate(newDate);
-                      if (hideDays) { onSelectDate(newDate); onClose(); }
-                    }}
-                    disabled={futureMonth}
-                    style={[
-                      styles.monthPill,
-                      isSelected && { backgroundColor: activeBlue },
-                    ]}
-                  >
-                    <Text
-                      style={{
-                        color: futureMonth
-                          ? theme.subText
-                          : isSelected
-                            ? "#fff"
-                            : theme.text,
-                        fontWeight: "700",
-                        fontSize: 13,
+            {/* Month Grid */}
+            <View style={styles.monthGrid}>
+              {MONTHS.map((m, i) => {
+                const futureMonth = isFutureMonth(i);
+                const isSelected = i === month;
+                return (
+                  <View key={m} style={styles.monthColumn}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (futureMonth) return;
+                        const newDate = setMonth(viewDate, i);
+                        setViewDate(newDate);
+                        if (hideDays) {
+                          onSelectDate(newDate);
+                          handleClose();
+                        }
                       }}
+                      disabled={futureMonth}
+                      style={[
+                        styles.monthPill,
+                        isSelected && { backgroundColor: activeBlue },
+                      ]}
                     >
-                      {m}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-
-          {!hideDays && (
-            <>
-              {/* Divider */}
-              <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-              {/* Day of week headers */}
-              <View style={styles.weekDayRow}>
-                {WEEK_DAYS.map((d) => (
-                  <View key={d} style={styles.weekDayCell}>
-                    <Text style={[styles.weekDayText, { color: theme.subText }]}>{d}</Text>
+                      <Text
+                        style={{
+                          color: futureMonth
+                            ? theme.subText
+                            : isSelected
+                              ? "#fff"
+                              : theme.text,
+                          fontWeight: "700",
+                          fontSize: 13,
+                        }}
+                      >
+                        {m}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                ))}
-              </View>
+                );
+              })}
+            </View>
 
-              {/* Day Grid */}
-              <View style={styles.dayGrid}>
-                {calendarDays.map((day, i) => {
-                  const future = isFutureDay(day);
-                  const isSelected = isSameDay(day, currentDate);
-                  const isToday = isSameDay(day, today);
-                  const inMonth = isSameMonth(day, viewDate);
-                  return (
-                    <View key={i} style={styles.dayColumn}>
-                      {inMonth ? (
-                        <TouchableOpacity
-                          onPress={() => { if (future) return; onSelectDate(day); onClose(); }}
-                          disabled={future}
-                          style={[
-                            styles.dayCell,
-                            isSelected && { backgroundColor: activeBlue },
-                            !isSelected && isToday && { borderWidth: 1.5, borderColor: activeBlue },
-                          ]}
-                        >
-                          <Text style={[
-                            styles.dayNum,
-                            { color: future ? theme.subText : isSelected ? "#fff" : isToday ? activeBlue : theme.text },
-                          ]}>
-                            {format(day, "d")}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
+            {!hideDays && (
+              <>
+                {/* Divider */}
+                <View
+                  style={[styles.divider, { backgroundColor: theme.border }]}
+                />
+
+                {/* Day of week headers */}
+                <View style={styles.weekDayRow}>
+                  {WEEK_DAYS.map((d) => (
+                    <View key={d} style={styles.weekDayCell}>
+                      <Text
+                        style={[styles.weekDayText, { color: theme.subText }]}
+                      >
+                        {d}
+                      </Text>
                     </View>
-                  );
-                })}
-              </View>
-            </>
-          )}
+                  ))}
+                </View>
 
-          {/* Done */}
-          <TouchableOpacity onPress={onClose} style={styles.doneBtn}>
-            <Text
-              style={{ color: activeBlue, fontWeight: "bold", fontSize: 15 }}
-            >
-              Done
-            </Text>
-          </TouchableOpacity>
-        </Pressable>
-      </View>
+                {/* Day Grid */}
+                <View style={styles.dayGrid}>
+                  {calendarDays.map((day, i) => {
+                    const future = isFutureDay(day);
+                    const isSelected = isSameDay(day, currentDate);
+                    const isToday = isSameDay(day, today);
+                    const inMonth = isSameMonth(day, viewDate);
+                    return (
+                      <View key={i} style={styles.dayColumn}>
+                        {inMonth ? (
+                          <TouchableOpacity
+                            onPress={() => {
+                              if (future) return;
+                              onSelectDate(day);
+                              handleClose();
+                            }}
+                            disabled={future}
+                            style={[
+                              styles.dayCell,
+                              isSelected && { backgroundColor: activeBlue },
+                              !isSelected &&
+                                isToday && {
+                                  borderWidth: 1.5,
+                                  borderColor: activeBlue,
+                                },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.dayNum,
+                                {
+                                  color: future
+                                    ? theme.subText
+                                    : isSelected
+                                      ? "#fff"
+                                      : isToday
+                                        ? activeBlue
+                                        : theme.text,
+                                },
+                              ]}
+                            >
+                              {format(day, "d")}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+
+            {/* Done */}
+            <TouchableOpacity onPress={handleClose} style={styles.doneBtn}>
+              <Text
+                style={{ color: activeBlue, fontWeight: "bold", fontSize: 15 }}
+              >
+                Done
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }

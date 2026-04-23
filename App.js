@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { DefaultTheme, DarkTheme } from "@react-navigation/native";
 import { View } from "react-native";
+import 'react-native-gesture-handler';
 
 // Import Store & Supabase
 import { useStore } from "./src/store/useStore";

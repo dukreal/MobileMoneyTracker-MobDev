@@ -34,6 +34,11 @@ export default function AddScreen({ navigation }) {
   const [notes, setNotes] = useState("");
   const [selectedCat, setSelectedCat] = useState(null);
   const [selectedSub, setSelectedSub] = useState(null);
+  const [catSheetVisible, setCatSheetVisible] = useState(false);
+  const [sheetCat, setSheetCat] = useState(null);
+  const [sheetSub, setSheetSub] = useState(null);
+  const openSheet = () => setCatSheetVisible(true);
+  const closeSheet = () => setCatSheetVisible(false);
 
   const [images, setImages] = useState([]);
   const [location, setLocation] = useState(null);
@@ -190,80 +195,72 @@ export default function AddScreen({ navigation }) {
   );
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={{ alignItems: "center", paddingTop: 60, paddingBottom: 10 }}>
-        <Text
-          style={{
-            fontSize: 26,
-            fontWeight: "900",
-            letterSpacing: 0.5,
-            color: theme.text,
-          }}
-        >
-          Add
-        </Text>
-      </View>
-      <View style={[styles.segmentWrapper, { backgroundColor: theme.card }]}>
-        <View
-          style={[
-            styles.segmentSlider,
-            {
-              backgroundColor: type === "expense" ? "#FF6B6B" : "#2ECC71",
-              left: type === "expense" ? 4 : "50%",
-            },
-          ]}
-        />
-        <TouchableOpacity
-          style={styles.segmentBtn}
-          onPress={() => setType("expense")}
-        >
-          <Ionicons
-            name="arrow-down-circle"
-            size={15}
-            color={type === "expense" ? "#fff" : theme.placeholder}
-            style={{ marginRight: 5 }}
-          />
-          <Text
+      {/* HERO HEADER */}
+      <View
+        style={[
+          styles.heroSection,
+          {
+            backgroundColor: theme.bg,
+            borderBottomWidth: 1,
+            borderBottomColor: isDarkMode ? "#2c2c2c" : "#f0f0f0",
+          },
+        ]}
+      >
+        <Text style={[styles.heroLabel, { color: theme.text }]}>Add Transaction</Text>
+
+        {/* Type Toggle */}
+        <View style={styles.heroToggle}>
+          <TouchableOpacity
             style={[
-              styles.segmentText,
-              { color: type === "expense" ? "#fff" : theme.placeholder },
+              styles.heroToggleBtn,
+              type === "expense" && styles.heroToggleActive,
             ]}
+            onPress={() => setType("expense")}
           >
-            Expense
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.segmentBtn}
-          onPress={() => setType("income")}
-        >
-          <Ionicons
-            name="arrow-up-circle"
-            size={15}
-            color={type === "income" ? "#fff" : theme.placeholder}
-            style={{ marginRight: 5 }}
-          />
-          <Text
+            <Ionicons
+              name="arrow-down-circle"
+              size={14}
+              color={type === "expense" ? "#FF6B6B" : "#999"}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.heroToggleText,
+                { color: type === "expense" ? "#FF6B6B" : "#999" },
+              ]}
+            >
+              Expense
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[
-              styles.segmentText,
-              { color: type === "income" ? "#fff" : theme.placeholder },
+              styles.heroToggleBtn,
+              type === "income" && styles.heroToggleActive,
             ]}
+            onPress={() => setType("income")}
           >
-            Income
-          </Text>
-        </TouchableOpacity>
-      </View>
-      <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
-        <View
-          style={[
-            styles.amountCard,
-            {
-              backgroundColor: type === "expense" ? "#FF6B6B18" : "#2ECC7118",
-              borderColor: type === "expense" ? "#FF6B6B44" : "#2ECC7144",
-            },
-          ]}
-        >
+            <Ionicons
+              name="arrow-up-circle"
+              size={14}
+              color={type === "income" ? "#2ECC71" : "#999"}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.heroToggleText,
+                { color: type === "income" ? "#2ECC71" : "#999" },
+              ]}
+            >
+              Income
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Amount Input inside hero */}
+        <View style={styles.heroAmountRow}>
           <Text
             style={[
-              styles.currencySymbol,
+              styles.heroCurrency,
               { color: type === "expense" ? "#FF6B6B" : "#2ECC71" },
             ]}
           >
@@ -273,27 +270,22 @@ export default function AddScreen({ navigation }) {
             key={inputKey}
             ref={amountRef}
             style={[
-              styles.amountInput,
+              styles.heroAmountInput,
               { color: type === "expense" ? "#FF6B6B" : "#2ECC71" },
             ]}
             textAlign="center"
             placeholder="0.00"
             placeholderTextColor={
-              type === "expense" ? "#FF6B6B88" : "#2ECC7188"
+              type === "expense" ? "#FF6B6B55" : "#2ECC7155"
             }
             keyboardType="decimal-pad"
             value={amount}
             onChangeText={setAmount}
             caretHidden={false}
-            onFocus={() => {
-              if (amountRef.current) {
-                amountRef.current.setNativeProps({
-                  selection: { start: amount.length, end: amount.length },
-                });
-              }
-            }}
           />
         </View>
+      </View>
+      <ScrollView style={[styles.container, { backgroundColor: theme.bg }]}>
         <TextInput
           style={[
             styles.notesInput,
@@ -305,14 +297,59 @@ export default function AddScreen({ navigation }) {
           onChangeText={setNotes}
         />
         <Text style={[styles.label, { color: theme.text }]}>Category</Text>
+
+        {/* Selected category display */}
+        {selectedCat && (
+          <TouchableOpacity
+            style={[
+              styles.selectedCatBar,
+              {
+                backgroundColor: selectedCat.color + "18",
+                borderColor: selectedCat.color + "44",
+              },
+            ]}
+            onPress={() => {
+              setSheetCat(selectedCat);
+              setSheetSub(selectedSub);
+              openSheet();
+            }}
+          >
+            <View
+              style={[
+                styles.selectedCatIcon,
+                { backgroundColor: selectedCat.color + "22" },
+              ]}
+            >
+              <Ionicons
+                name={selectedCat.icon}
+                size={20}
+                color={selectedCat.color}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text
+                style={[styles.selectedCatName, { color: selectedCat.color }]}
+              >
+                {selectedCat.name}
+              </Text>
+              <Text
+                style={[styles.selectedCatSub, { color: theme.placeholder }]}
+              >
+                {selectedSub || "Tap to pick sub-category"}
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={theme.placeholder}
+            />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.catGrid}>
           {CATEGORIES[type].map((cat) => (
             <TouchableOpacity
               key={cat.name}
-              onPress={() => {
-                setSelectedCat(cat);
-                setSelectedSub(null);
-              }}
               style={[
                 styles.catItem,
                 {
@@ -325,35 +362,21 @@ export default function AddScreen({ navigation }) {
                     selectedCat?.name === cat.name ? cat.color : "transparent",
                 },
               ]}
+              onPress={() => {
+                setSheetCat(cat);
+                setSheetSub(
+                  selectedCat?.name === cat.name ? selectedSub : null,
+                );
+                openSheet();
+              }}
             >
-              <Ionicons name={cat.icon} size={22} color={cat.color} />
+              <Ionicons name={cat.icon} size={28} color={cat.color} />
               <Text style={[styles.catText, { color: theme.text }]}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
-        {selectedCat && (
-          <View style={styles.subGrid}>
-            {selectedCat.subs.map((sub) => (
-              <TouchableOpacity
-                key={sub}
-                onPress={() => setSelectedSub(sub)}
-                style={[
-                  styles.subItem,
-                  { backgroundColor: isDarkMode ? "#333" : "#eee" },
-                  selectedSub === sub && styles.activeSub,
-                ]}
-              >
-                <Text
-                  style={{ color: selectedSub === sub ? "#fff" : theme.text }}
-                >
-                  {sub}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
         <View style={[styles.section, { borderTopColor: theme.inputBorder }]}>
           <Text style={[styles.label, { color: theme.text, marginBottom: 10 }]}>
             Location{" "}
@@ -558,6 +581,71 @@ export default function AddScreen({ navigation }) {
         )}
       </TouchableOpacity>
 
+      {/* CATEGORY BOTTOM SHEET */}
+      <Modal
+        visible={catSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeSheet}
+      >
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={closeSheet}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+          <View style={[styles.sheetContainer, { backgroundColor: theme.bg }]}>
+            {/* Handle */}
+            <View style={[styles.sheetHandle, { backgroundColor: isDarkMode ? "#444" : "#ddd" }]} />
+
+            {/* Sheet Header */}
+            {sheetCat && (
+              <View style={styles.sheetHeader}>
+                <View style={[styles.sheetIconCircle, { backgroundColor: sheetCat.color + "22" }]}>
+                  <Ionicons name={sheetCat.icon} size={24} color={sheetCat.color} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={[styles.sheetTitle, { color: theme.text }]}>{sheetCat.name}</Text>
+                  <Text style={[styles.sheetSubtitle, { color: theme.placeholder }]}>Select a sub-category</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Sub-category grid */}
+            <View style={styles.sheetSubGrid}>
+              {sheetCat?.subs.map((sub) => (
+                <TouchableOpacity
+                  key={sub}
+                  style={[
+                    styles.sheetSubItem,
+                    {
+                      backgroundColor: sheetSub === sub ? sheetCat.color + "22" : theme.card,
+                      borderColor: sheetSub === sub ? sheetCat.color : "transparent",
+                      borderWidth: 1.5,
+                    },
+                  ]}
+                  onPress={() => setSheetSub(sub)}
+                >
+                  <Text style={{ color: sheetSub === sub ? sheetCat.color : theme.text, fontSize: 13, fontWeight: "600" }}>
+                    {sub}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Confirm Button */}
+            <TouchableOpacity
+              style={[styles.sheetConfirmBtn, { opacity: sheetSub ? 1 : 0.4 }]}
+              disabled={!sheetSub}
+              onPress={() => {
+                setSelectedCat(sheetCat);
+                setSelectedSub(sheetSub);
+                closeSheet();
+              }}
+            >
+              <Text style={styles.sheetConfirmText}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
       <LocationPickerModal
         visible={locationModalVisible}
         onClose={() => {
@@ -648,29 +736,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   segmentText: { fontSize: 14, fontWeight: "700" },
-  amountCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 5,
-    marginHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  currencySymbol: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginRight: 4,
-  },
-  locationManualInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 8,
-    fontSize: 13,
-  },
   locationOptionBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -687,20 +752,52 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 6,
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 15,
-  },
-  toggle: {
-    flex: 1,
-    padding: 12,
+  heroSection: {
+    paddingTop: 55,
+    paddingBottom: 12,
+    paddingHorizontal: 24,
     alignItems: "center",
-    borderRadius: 10,
-    marginHorizontal: 5,
+    gap: 4.5,
   },
-  activeExpense: { backgroundColor: "#FF6B6B" },
-  activeIncome: { backgroundColor: "#2ECC71" },
+  heroLabel: {
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
+  heroToggle: {
+    flexDirection: "row",
+    backgroundColor: "rgba(0,0,0,0.08)",
+    borderRadius: 12,
+    padding: 3,
+    gap: 3,
+  },
+  heroToggleBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 7,
+    borderRadius: 9,
+  },
+  heroToggleActive: { backgroundColor: "#fff" },
+  heroToggleText: { fontSize: 13, fontWeight: "700" },
+  heroAmountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  heroCurrency: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginRight: 2,
+    marginTop: 6,
+  },
+  heroAmountInput: {
+    fontSize: 42,
+    fontWeight: "800",
+    minWidth: 100,
+    textAlign: "center",
+  },
   amountInput: {
     fontSize: 44,
     textAlign: "center",
@@ -716,12 +813,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   catItem: {
-    width: "30%",
-    height: 80,
+    width: "31%",
+    height: 84,
     padding: 10,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 4,
   },
   catText: { fontSize: 10, marginTop: 4, textAlign: "center" },
@@ -735,6 +832,69 @@ const styles = StyleSheet.create({
   subItem: { padding: 8, paddingHorizontal: 14, borderRadius: 15 },
   activeSub: { backgroundColor: "#4A90E2" },
   section: { marginTop: 10, paddingTop: 15, borderTopWidth: 1 },
+  selectedCatBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  selectedCatIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  selectedCatName: { fontSize: 14, fontWeight: "700" },
+  selectedCatSub: { fontSize: 12, marginTop: 2 },
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  sheetContainer: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  sheetHeader: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  sheetIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sheetTitle: { fontSize: 17, fontWeight: "800" },
+  sheetSubtitle: { fontSize: 12, marginTop: 2 },
+  sheetSubGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 20,
+  },
+  sheetSubItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  sheetConfirmBtn: {
+    backgroundColor: "#4A90E2",
+    padding: 16,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  sheetConfirmText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   utilRow: { flexDirection: "row" },
   utilBtn: {
     flexDirection: "row",
@@ -755,8 +915,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     padding: 14,
-    marginTop: 15,
-    marginBottom: 15,
+    marginTop: 8,
+    marginBottom: 10,
     fontSize: 15,
   },
   saveButton: {
