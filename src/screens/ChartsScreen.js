@@ -24,6 +24,7 @@ import {
 import { CATEGORIES } from "../constants/Categories";
 import CalendarModal from "../components/CalendarModal";
 import WeekPickerModal from "../components/WeekPickerModal";
+import YearPickerModal from "../components/YearPickerModal";
 
 const getCatIcon = (parentCategory, subCategory) => {
   const found =
@@ -53,6 +54,9 @@ export default function ChartsScreen({ navigation }) {
   const [selectedWeek, setSelectedWeek] = useState(
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   );
+  const [yearPickerVisible, setYearPickerVisible] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
   const { isGuest, isDarkMode, currency } = useStore();
 
   const theme = {
@@ -92,7 +96,7 @@ export default function ChartsScreen({ navigation }) {
       if (viewMode === "week")
         return isSameWeek(d, selectedWeek, { weekStartsOn: 1 });
       if (viewMode === "month") return isSameMonth(d, selectedMonth);
-      if (viewMode === "year") return d.getFullYear() === now.getFullYear();
+      if (viewMode === "year") return d.getFullYear() === selectedYear;
       return true;
     });
   }, [transactions, viewMode, selectedMonth, selectedWeek]);
@@ -225,7 +229,7 @@ export default function ChartsScreen({ navigation }) {
       return `${format(ws, "MMMM d")} – ${format(we, "MMMM d, yyyy")}`;
     }
     if (viewMode === "month") return format(selectedMonth, "MMMM yyyy");
-    return String(now.getFullYear());
+    return String(selectedYear);
   }, [viewMode, selectedMonth, selectedWeek]);
 
   const MONTHS_LABEL = [
@@ -338,19 +342,12 @@ export default function ChartsScreen({ navigation }) {
               <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
           ) : viewMode === "week" ? (
-            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#4A90E220", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 }} onPress={() => setWeekPickerVisible(true)}>
-              <Text style={[styles.periodLargeText, { color: "#4A90E2", fontSize: 15 }]}>
-                {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 1 }) ? "This Week" : periodLabel}
-              </Text>
-              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
-            </TouchableOpacity>
-          ) : viewMode === "week" ? (
             <TouchableOpacity
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
-                backgroundColor: theme.surface,
+                backgroundColor: "#4A90E220",
                 paddingHorizontal: 14,
                 paddingVertical: 6,
                 borderRadius: 20,
@@ -360,12 +357,39 @@ export default function ChartsScreen({ navigation }) {
               <Text
                 style={[
                   styles.periodLargeText,
-                  { color: theme.text, fontSize: 15 },
+                  { color: "#4A90E2", fontSize: 15 },
                 ]}
               >
-                {periodLabel}
+                {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 1 })
+                  ? "This Week"
+                  : periodLabel}
               </Text>
-              <Ionicons name="chevron-down" size={14} color={theme.subText} />
+              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
+            </TouchableOpacity>
+          ) : viewMode === "year" ? (
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: "#4A90E220",
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}
+              onPress={() => setYearPickerVisible(true)}
+            >
+              <Text
+                style={[
+                  styles.periodLargeText,
+                  { color: "#4A90E2", fontSize: 15 },
+                ]}
+              >
+                {selectedYear === new Date().getFullYear()
+                  ? "This Year"
+                  : `Year ${selectedYear}`}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
           ) : (
             <Text
@@ -887,6 +911,16 @@ export default function ChartsScreen({ navigation }) {
         onSelectWeek={(week) => {
           setSelectedWeek(week);
           setSelectedSlice(null);
+        }}
+        isDarkMode={isDarkMode}
+      />
+      <YearPickerModal
+        visible={yearPickerVisible}
+        onClose={() => setYearPickerVisible(false)}
+        currentYear={selectedYear}
+        onSelectYear={(year) => {
+          setSelectedYear(year);
+          setSelectedSlice(null); // Reset chart focus when year changes
         }}
         isDarkMode={isDarkMode}
       />
