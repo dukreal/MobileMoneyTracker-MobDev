@@ -22,9 +22,7 @@ import {
   startOfDay,
 } from "date-fns";
 import { CATEGORIES } from "../constants/Categories";
-import CalendarModal from "../components/CalendarModal";
-import WeekPickerModal from "../components/WeekPickerModal";
-import YearPickerModal from "../components/YearPickerModal";
+import PickerModal from "../components/PickerModal";
 
 const getCatIcon = (parentCategory, subCategory) => {
   const found =
@@ -49,12 +47,10 @@ export default function ChartsScreen({ navigation }) {
   const [selectedSlice, setSelectedSlice] = useState(null);
   const [chartType, setChartType] = useState("expense"); // 'expense' | 'income'
   const [selectedMonth, setSelectedMonth] = useState(new Date());
-  const [calendarVisible, setCalendarVisible] = useState(false);
-  const [weekPickerVisible, setWeekPickerVisible] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(
     startOfWeek(new Date(), { weekStartsOn: 1 }),
   );
-  const [yearPickerVisible, setYearPickerVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const { isGuest, isDarkMode, currency } = useStore();
@@ -329,7 +325,7 @@ export default function ChartsScreen({ navigation }) {
                 paddingVertical: 6,
                 borderRadius: 20,
               }}
-              onPress={() => setCalendarVisible(true)}
+              onPress={() => setPickerVisible(true)}
             >
               <Text
                 style={[
@@ -352,7 +348,7 @@ export default function ChartsScreen({ navigation }) {
                 paddingVertical: 6,
                 borderRadius: 20,
               }}
-              onPress={() => setWeekPickerVisible(true)}
+              onPress={() => setPickerVisible(true)}
             >
               <Text
                 style={[
@@ -377,7 +373,7 @@ export default function ChartsScreen({ navigation }) {
                 paddingVertical: 6,
                 borderRadius: 20,
               }}
-              onPress={() => setYearPickerVisible(true)}
+              onPress={() => setPickerVisible(true)}
             >
               <Text
                 style={[
@@ -893,34 +889,20 @@ export default function ChartsScreen({ navigation }) {
         )}
       </ScrollView>
 
-      <CalendarModal
-        visible={calendarVisible}
-        onClose={() => setCalendarVisible(false)}
-        currentDate={selectedMonth}
-        onSelectDate={(date) => {
-          setSelectedMonth(startOfMonth(date));
+      <PickerModal
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        mode={viewMode === 'month' ? 'month' : viewMode === 'week' ? 'week' : 'year'}
+        currentValue={
+          viewMode === 'month' ? selectedMonth : 
+          viewMode === 'week' ? selectedWeek : 
+          selectedYear
+        }
+        onSelect={(val) => {
+          if (viewMode === 'month') setSelectedMonth(startOfMonth(val));
+          if (viewMode === 'week') setSelectedWeek(val);
+          if (viewMode === 'year') setSelectedYear(val);
           setSelectedSlice(null);
-        }}
-        isDarkMode={isDarkMode}
-        hideDays
-      />
-      <WeekPickerModal
-        visible={weekPickerVisible}
-        onClose={() => setWeekPickerVisible(false)}
-        currentWeek={selectedWeek}
-        onSelectWeek={(week) => {
-          setSelectedWeek(week);
-          setSelectedSlice(null);
-        }}
-        isDarkMode={isDarkMode}
-      />
-      <YearPickerModal
-        visible={yearPickerVisible}
-        onClose={() => setYearPickerVisible(false)}
-        currentYear={selectedYear}
-        onSelectYear={(year) => {
-          setSelectedYear(year);
-          setSelectedSlice(null); // Reset chart focus when year changes
         }}
         isDarkMode={isDarkMode}
       />

@@ -36,7 +36,7 @@ import {
 } from "date-fns";
 
 import { Ionicons } from "@expo/vector-icons";
-import CalendarModal from "../components/CalendarModal";
+import PickerModal from "../components/PickerModal";
 
 const MONTHS = [
   "Jan",
@@ -387,11 +387,12 @@ export default function HomeScreen({ navigation, route }) {
         )}
       />
 
-      <CalendarModal
+      <PickerModal
         visible={calendarVisible}
         onClose={() => setCalendarVisible(false)}
-        currentDate={selectedDate}
-        onSelectDate={(date) => {
+        mode="date"
+        currentValue={selectedDate}
+        onSelect={(date) => {
           selectionSource.current = "modal";
           setSelectedDate(startOfDay(date));
         }}
