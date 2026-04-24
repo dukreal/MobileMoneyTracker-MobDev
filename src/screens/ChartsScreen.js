@@ -303,37 +303,81 @@ export default function ChartsScreen({ navigation }) {
       <View
         style={[
           styles.header,
-          { backgroundColor: theme.surface, borderBottomColor: theme.border },
+          { backgroundColor: theme.bg, borderBottomColor: theme.border },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          Analytics
-        </Text>
-        {viewMode === "month" ? (
-          <TouchableOpacity
-            style={styles.periodBtn}
-            onPress={() => setCalendarVisible(true)}
-          >
-            <Text style={[styles.periodLabel, { color: theme.accent }]}>
-              {periodLabel}
-            </Text>
-            <Ionicons name="chevron-down" size={13} color={theme.accent} />
-          </TouchableOpacity>
-        ) : viewMode === "week" ? (
-          <TouchableOpacity
-            style={styles.periodBtn}
-            onPress={() => setWeekPickerVisible(true)}
-          >
-            <Text style={[styles.periodLabel, { color: theme.accent }]}>
-              {periodLabel}
-            </Text>
-            <Ionicons name="chevron-down" size={13} color={theme.accent} />
-          </TouchableOpacity>
-        ) : (
-          <Text style={[styles.periodLabel, { color: theme.subText }]}>
-            {periodLabel}
+        {/* Row 1 — App section label */}
+        <View style={styles.headerTopRow}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>
+            Analytics
           </Text>
-        )}
+        </View>
+        {/* Row 2 — Period selector */}
+        <View style={{ alignItems: "center" }}>
+          {viewMode === "month" ? (
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: "#4A90E220",
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}
+              onPress={() => setCalendarVisible(true)}
+            >
+              <Text
+                style={[
+                  styles.periodLargeText,
+                  { color: "#4A90E2", fontSize: 15 },
+                ]}
+              >
+                {periodLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
+            </TouchableOpacity>
+          ) : viewMode === "week" ? (
+            <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#4A90E220", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 }} onPress={() => setWeekPickerVisible(true)}>
+              <Text style={[styles.periodLargeText, { color: "#4A90E2", fontSize: 15 }]}>
+                {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 1 }) ? "This Week" : periodLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
+            </TouchableOpacity>
+          ) : viewMode === "week" ? (
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: theme.surface,
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+                borderRadius: 20,
+              }}
+              onPress={() => setWeekPickerVisible(true)}
+            >
+              <Text
+                style={[
+                  styles.periodLargeText,
+                  { color: theme.text, fontSize: 15 },
+                ]}
+              >
+                {periodLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color={theme.subText} />
+            </TouchableOpacity>
+          ) : (
+            <Text
+              style={[
+                styles.periodLargeText,
+                { color: theme.subText, fontSize: 15 },
+              ]}
+            >
+              {periodLabel}
+            </Text>
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -855,15 +899,17 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingTop: 58,
-    paddingBottom: 12,
     paddingHorizontal: 20,
+    paddingTop: 55,
+    paddingBottom: 10,
     borderBottomWidth: 1,
-    alignItems: "center",
-    gap: 4,
   },
-  headerTitle: { fontSize: 22, fontWeight: "800", letterSpacing: -0.3 },
-  periodBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
+  headerTopRow: { alignItems: "center", marginBottom: 10 },
+  headerBottomRow: { alignItems: "center" },
+  headerTitle: { fontSize: 26, fontWeight: "900", letterSpacing: 0.5 },
+  periodBtn: { flexDirection: "column" },
+  periodSubLabel: { fontSize: 13, fontWeight: "700" },
+  periodLargeText: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
   periodLabel: { fontSize: 13, fontWeight: "600" },
 
   // Segment
