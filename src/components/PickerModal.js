@@ -53,7 +53,7 @@ const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default function PickerModal({
   visible,
   onClose,
-  mode = "date", // "date" (Calendar), "month" (Pills), "week" (List), "year" (Grid)
+  mode = "date",
   currentValue,
   onSelect,
   isDarkMode,
@@ -108,7 +108,6 @@ export default function PickerModal({
     itemBg: isDarkMode ? "#1e1e1e" : "#f5f5f5",
   };
 
-  // --- LOGIC GENERATORS ---
   const years = useMemo(() => {
     const res = [];
     for (let i = new Date().getFullYear(); i >= 2021; i--) res.push(i);
@@ -119,18 +118,15 @@ export default function PickerModal({
     const res = [];
     const today = new Date();
     let currentCursor = startOfWeek(today, { weekStartsOn: 1 });
-    const stopDate = startOfYear(subYears(today, 0)); // Adjust to go back further if needed
+    const stopDate = startOfYear(subYears(today, 0));
     let lastMonthSeen = -1;
 
     while (!isAfter(stopDate, currentCursor)) {
       const monthIdx = getMonth(currentCursor);
-
-      // Add a Month Header whenever the month changes
       if (monthIdx !== lastMonthSeen) {
         res.push({ type: "header", label: format(currentCursor, "MMMM yyyy") });
         lastMonthSeen = monthIdx;
       }
-
       res.push({
         type: "week",
         start: currentCursor,
@@ -147,7 +143,7 @@ export default function PickerModal({
     return eachDayOfInterval({ start, end });
   }, [viewDate]);
 
-  // --- RENDERING MODES ---
+  // --- FIXED YEAR GRID ---
   const renderYearGrid = () => (
     <FlatList
       data={years}
@@ -156,16 +152,25 @@ export default function PickerModal({
       keyExtractor={(item) => item.toString()}
       renderItem={({ item }) => (
         <TouchableOpacity
-          onPress={handleClose}
           style={[
-            styles.doneBtn,
+            styles.gridItem,
             {
-              paddingBottom: insets.bottom > 30 ? insets.bottom : 20,
+              backgroundColor:
+                item === currentValue ? activeBlue : theme.itemBg,
             },
           ]}
+          onPress={() => {
+            onSelect(item);
+            handleClose();
+          }}
         >
-          <Text style={{ color: activeBlue, fontWeight: "700", fontSize: 16 }}>
-            Done
+          <Text
+            style={{
+              color: item === currentValue ? "#fff" : theme.text,
+              fontWeight: "700",
+            }}
+          >
+            {item}
           </Text>
         </TouchableOpacity>
       )}
@@ -193,12 +198,10 @@ export default function PickerModal({
             </View>
           );
         }
-
         const isSelected = isSameWeek(item.start, currentValue, {
           weekStartsOn: 1,
         });
         const isToday = isSameWeek(item.start, new Date(), { weekStartsOn: 1 });
-
         return (
           <TouchableOpacity
             style={[
@@ -278,12 +281,9 @@ export default function PickerModal({
         {MONTHS_SHORT.map((m, i) => {
           const isSelected =
             i === getMonth(viewDate) && isSameMonth(viewDate, currentValue);
-
-          // Logic to disable future months
           const today = new Date();
           const isThisYear = getYear(viewDate) === today.getFullYear();
           const isFutureMonth = isThisYear && i > today.getMonth();
-
           return (
             <TouchableOpacity
               key={m}
@@ -293,7 +293,7 @@ export default function PickerModal({
                 {
                   width: "23%",
                   backgroundColor: isSelected ? activeBlue : "transparent",
-                  opacity: isFutureMonth ? 0.3 : 1, // Dim future months
+                  opacity: isFutureMonth ? 0.3 : 1,
                 },
               ]}
               onPress={() => {
@@ -336,7 +336,6 @@ export default function PickerModal({
               startOfDay(day),
               startOfDay(new Date()),
             );
-
             return (
               <TouchableOpacity
                 key={i}
@@ -402,20 +401,15 @@ export default function PickerModal({
           <Text style={[styles.title, { color: theme.text }]}>
             Select {mode.charAt(0).toUpperCase() + mode.slice(1)}
           </Text>
-
           <View style={styles.content}>
             {mode === "year" && renderYearGrid()}
             {mode === "week" && renderWeekList()}
             {mode === "month" && renderCalendar(true)}
             {mode === "date" && renderCalendar(false)}
           </View>
-
           <TouchableOpacity
             onPress={handleClose}
-            style={[
-              styles.doneBtn,
-              { paddingBottom: insets.bottom > 0 ? insets.bottom : 8 },
-            ]}
+            style={styles.doneBtn}
           >
             <Text
               style={{ color: activeBlue, fontWeight: "700", fontSize: 16 }}
@@ -432,15 +426,15 @@ export default function PickerModal({
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderWidth: 1,
     borderBottomWidth: 0,
-    // Remove paddingBottom: 0; let the button handle the spacing
+    paddingBottom: 0, // MUST be 0 so the button can handle the bottom space
   },
   handle: {
     width: 36,
@@ -465,7 +459,7 @@ const styles = StyleSheet.create({
   },
   weekRow: {
     paddingVertical: 15,
-    paddingHorizontal: 10, // Added: Gives text breathing room on the left/right
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -494,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     borderTopWidth: 1,
-    borderTopColor: "rgba(128,128,128,0.15)", // Changed: More visible in Dark Mode
+    borderTopColor: "rgba(128,128,128,0.15)",
     paddingTop: 10,
   },
   dayHeader: {
@@ -514,10 +508,9 @@ const styles = StyleSheet.create({
   doneBtn: {
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 15,
+    paddingVertical: 15,
     borderTopWidth: 1,
     borderTopColor: "rgba(128,128,128,0.15)",
-    marginHorizontal: -20,
   },
   weekHeader: {
     paddingVertical: 8,
@@ -537,9 +530,5 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  currentBadgeText: {
-    color: "#2ecc71",
-    fontSize: 9,
-    fontWeight: "900",
-  },
+  currentBadgeText: { color: "#2ecc71", fontSize: 9, fontWeight: "900" },
 });

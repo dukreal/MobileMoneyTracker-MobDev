@@ -316,46 +316,18 @@ export default function ChartsScreen({ navigation }) {
         <View style={{ alignItems: "center" }}>
           {viewMode === "month" ? (
             <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: "#4A90E220",
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                borderRadius: 20,
-              }}
+              style={styles.periodPill}
               onPress={() => setPickerVisible(true)}
             >
-              <Text
-                style={[
-                  styles.periodLargeText,
-                  { color: "#4A90E2", fontSize: 15 },
-                ]}
-              >
-                {periodLabel}
-              </Text>
+              <Text style={styles.periodPillText}>{periodLabel}</Text>
               <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
           ) : viewMode === "week" ? (
             <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: "#4A90E220",
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                borderRadius: 20,
-              }}
+              style={styles.periodPill}
               onPress={() => setPickerVisible(true)}
             >
-              <Text
-                style={[
-                  styles.periodLargeText,
-                  { color: "#4A90E2", fontSize: 15 },
-                ]}
-              >
+              <Text style={styles.periodPillText}>
                 {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 1 })
                   ? "This Week"
                   : periodLabel}
@@ -364,23 +336,10 @@ export default function ChartsScreen({ navigation }) {
             </TouchableOpacity>
           ) : viewMode === "year" ? (
             <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: "#4A90E220",
-                paddingHorizontal: 14,
-                paddingVertical: 6,
-                borderRadius: 20,
-              }}
+              style={styles.periodPill}
               onPress={() => setPickerVisible(true)}
             >
-              <Text
-                style={[
-                  styles.periodLargeText,
-                  { color: "#4A90E2", fontSize: 15 },
-                ]}
-              >
+              <Text style={styles.periodPillText}>
                 {selectedYear === new Date().getFullYear()
                   ? "This Year"
                   : `Year ${selectedYear}`}
@@ -388,12 +347,7 @@ export default function ChartsScreen({ navigation }) {
               <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
           ) : (
-            <Text
-              style={[
-                styles.periodLargeText,
-                { color: theme.subText, fontSize: 15 },
-              ]}
-            >
+            <Text style={[styles.periodLargeText, { color: theme.subText, fontSize: 15 }]}>
               {periodLabel}
             </Text>
           )}
@@ -1100,4 +1054,18 @@ const styles = StyleSheet.create({
   },
   lockTitle: { fontSize: 20, fontWeight: "800" },
   lockSub: { textAlign: "center", fontSize: 14, lineHeight: 20 },
+  periodPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#4A90E220",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  periodPillText: { 
+    color: "#4A90E2", 
+    fontSize: 15, 
+    fontWeight: "700" 
+  },
 });

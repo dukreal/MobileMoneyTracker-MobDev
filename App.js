@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { DefaultTheme, DarkTheme } from "@react-navigation/native";
 import { View } from "react-native";
-import 'react-native-gesture-handler';
+import "react-native-gesture-handler";
 
 // Import Store & Supabase
 import { useStore } from "./src/store/useStore";
@@ -112,8 +112,8 @@ export default function App() {
     ...(isDarkMode ? DarkTheme : DefaultTheme),
     colors: {
       ...(isDarkMode ? DarkTheme.colors : DefaultTheme.colors),
-      background: bgColor, // This sets the theme background
-      card: bgColor, // This sets the header background
+      background: bgColor,
+      card: bgColor,
     },
   };
 
@@ -124,7 +124,7 @@ export default function App() {
         <StatusBar
           style={isDarkMode ? "light" : "dark"}
           backgroundColor={bgColor}
-          navigationBarColor={bgColor}
+          translucent={false} // Helps align content better
         />
 
         <Stack.Navigator
@@ -134,10 +134,9 @@ export default function App() {
             headerStyle: { backgroundColor: isDarkMode ? "#121212" : "#fff" },
             headerTintColor: isDarkMode ? "#fff" : "#000",
             headerShadowVisible: false,
-            freezeOnBlur: false,
-            detachPreviousScreen: false,
-            cardOverlayEnabled: false,
-            cardStyle: { backgroundColor: "transparent" },
+            gestureEnabled: true, // Ensure gestures are on by default
+            fullScreenGestureEnabled: true, // Better for Android gesture users
+            freezeOnBlur: true, // Changed to true for better performance
           }}
         >
           <Stack.Screen
@@ -151,12 +150,10 @@ export default function App() {
             options={{
               headerShown: false,
               animation: "slide_from_right",
-              animationTypeForReplace: "push",
-              gestureEnabled: false,
+              gestureEnabled: true, // Enable swipe back
               contentStyle: {
                 backgroundColor: isDarkMode ? "#121212" : "#fff",
               },
-              freezeOnBlur: false,
             }}
           />
           <Stack.Screen
