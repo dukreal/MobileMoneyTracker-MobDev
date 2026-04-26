@@ -86,16 +86,15 @@ export default function ChartsScreen({ navigation }) {
   );
 
   const filteredTxs = useMemo(() => {
-    const now = new Date();
     return transactions.filter((t) => {
       const d = new Date(t.created_at);
       if (viewMode === "week")
         return isSameWeek(d, selectedWeek, { weekStartsOn: 1 });
       if (viewMode === "month") return isSameMonth(d, selectedMonth);
-      if (viewMode === "year") return d.getFullYear() === selectedYear;
+      if (viewMode === "year") return d.getFullYear() === selectedYear; // Fixed: Uses state variable
       return true;
     });
-  }, [transactions, viewMode, selectedMonth, selectedWeek]);
+  }, [transactions, viewMode, selectedMonth, selectedWeek, selectedYear]); // Added selectedYear here
 
   const expenseTxs = useMemo(
     () => filteredTxs.filter((t) => t.type === "expense"),
@@ -218,15 +217,16 @@ export default function ChartsScreen({ navigation }) {
   }, [expenseTxs, incomeTxs, selectedSlice, chartType, viewMode]);
 
   const periodLabel = useMemo(() => {
-    const now = new Date();
     if (viewMode === "week") {
       const ws = selectedWeek;
       const we = endOfWeek(selectedWeek, { weekStartsOn: 1 });
       return `${format(ws, "MMMM d")} – ${format(we, "MMMM d, yyyy")}`;
     }
     if (viewMode === "month") return format(selectedMonth, "MMMM yyyy");
-    return String(selectedYear);
-  }, [viewMode, selectedMonth, selectedWeek]);
+    return selectedYear === new Date().getFullYear()
+      ? "This Year"
+      : String(selectedYear);
+  }, [viewMode, selectedMonth, selectedWeek, selectedYear]); 
 
   const MONTHS_LABEL = [
     "January",
@@ -347,7 +347,12 @@ export default function ChartsScreen({ navigation }) {
               <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
           ) : (
-            <Text style={[styles.periodLargeText, { color: theme.subText, fontSize: 15 }]}>
+            <Text
+              style={[
+                styles.periodLargeText,
+                { color: theme.subText, fontSize: 15 },
+              ]}
+            >
               {periodLabel}
             </Text>
           )}
@@ -846,16 +851,20 @@ export default function ChartsScreen({ navigation }) {
       <PickerModal
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
-        mode={viewMode === 'month' ? 'month' : viewMode === 'week' ? 'week' : 'year'}
+        mode={
+          viewMode === "month" ? "month" : viewMode === "week" ? "week" : "year"
+        }
         currentValue={
-          viewMode === 'month' ? selectedMonth : 
-          viewMode === 'week' ? selectedWeek : 
-          selectedYear
+          viewMode === "month"
+            ? selectedMonth
+            : viewMode === "week"
+              ? selectedWeek
+              : selectedYear
         }
         onSelect={(val) => {
-          if (viewMode === 'month') setSelectedMonth(startOfMonth(val));
-          if (viewMode === 'week') setSelectedWeek(val);
-          if (viewMode === 'year') setSelectedYear(val);
+          if (viewMode === "month") setSelectedMonth(startOfMonth(val));
+          if (viewMode === "week") setSelectedWeek(val);
+          if (viewMode === "year") setSelectedYear(val);
           setSelectedSlice(null);
         }}
         isDarkMode={isDarkMode}
@@ -1063,9 +1072,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
   },
-  periodPillText: { 
-    color: "#4A90E2", 
-    fontSize: 15, 
-    fontWeight: "700" 
+  periodPillText: {
+    color: "#4A90E2",
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
