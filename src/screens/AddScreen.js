@@ -185,15 +185,18 @@ export default function AddScreen({ navigation }) {
   };
 
   const handleSave = async () => {
-    if (!amount || !selectedCat || !selectedSub)
-      return Alert.alert("Error", "Please fill in all fields");
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0)
+      return Alert.alert("Error", "Please enter a valid amount");
+    if (!selectedCat || !selectedSub)
+      return Alert.alert("Error", "Please select a category");
     setLoading(true);
     try {
       const imageUrls = await uploadImagesToStorage(user.id);
       const { error } = await supabase.from("transactions").insert([
         {
           user_id: user?.id,
-          amount: parseFloat(amount),
+          amount: parsedAmount,
           type: type,
           parent_category: selectedCat.name,
           sub_category: selectedSub,

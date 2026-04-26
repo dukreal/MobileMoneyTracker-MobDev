@@ -53,7 +53,7 @@ export default function ChartsScreen({ navigation }) {
   );
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const { isGuest, isDarkMode, currency } = useStore();
+  const { isGuest, isDarkMode, currency, user } = useStore();
 
   const theme = {
     bg: isDarkMode ? "#121212" : "#ffffff",
@@ -68,7 +68,10 @@ export default function ChartsScreen({ navigation }) {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("transactions").select("*");
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user?.id);
       if (error) throw error;
       setTransactions(data || []);
     } catch {
@@ -134,7 +137,6 @@ export default function ChartsScreen({ navigation }) {
     if (sourceTxs.length === 0) return [];
 
     if (viewMode === "year") {
-      const now = new Date();
       const monthlyData = [];
       MONTH_COLORS.forEach((color, i) => {
         const monthTxs = sourceTxs.filter(
@@ -226,7 +228,7 @@ export default function ChartsScreen({ navigation }) {
     return selectedYear === new Date().getFullYear()
       ? "This Year"
       : String(selectedYear);
-  }, [viewMode, selectedMonth, selectedWeek, selectedYear]); 
+  }, [viewMode, selectedMonth, selectedWeek, selectedYear]);
 
   const MONTHS_LABEL = [
     "January",
@@ -300,19 +302,12 @@ export default function ChartsScreen({ navigation }) {
   return (
     <View style={[styles.wrapper, { backgroundColor: theme.bg }]}>
       {/* HEADER */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: theme.bg, borderBottomColor: theme.border },
-        ]}
-      >
-        {/* Row 1 — App section label */}
+      <View style={[styles.header, { backgroundColor: theme.bg }]}>
         <View style={styles.headerTopRow}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>
             Analytics
           </Text>
         </View>
-        {/* Row 2 — Period selector */}
         <View style={{ alignItems: "center" }}>
           {viewMode === "month" ? (
             <TouchableOpacity
@@ -334,7 +329,7 @@ export default function ChartsScreen({ navigation }) {
               </Text>
               <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
-          ) : viewMode === "year" ? (
+          ) : (
             <TouchableOpacity
               style={styles.periodPill}
               onPress={() => setPickerVisible(true)}
@@ -346,24 +341,17 @@ export default function ChartsScreen({ navigation }) {
               </Text>
               <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
-          ) : (
-            <Text
-              style={[
-                styles.periodLargeText,
-                { color: theme.subText, fontSize: 15 },
-              ]}
-            >
-              {periodLabel}
-            </Text>
           )}
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 10 }}
+      {/* SEGMENT TOGGLE (Now with the bottom line) */}
+      <View
+        style={[
+          styles.segmentContainer,
+          { borderBottomColor: theme.border, backgroundColor: theme.bg },
+        ]}
       >
-        {/* SEGMENT TOGGLE */}
         <View
           style={[styles.segmentWrapper, { backgroundColor: theme.surface2 }]}
         >
@@ -372,7 +360,9 @@ export default function ChartsScreen({ navigation }) {
               key={mode}
               style={[
                 styles.segmentBtn,
-                viewMode === mode && { backgroundColor: "#ffffff" },
+                viewMode === mode && {
+                  backgroundColor: isDarkMode ? "#333" : "#ffffff",
+                },
               ]}
               onPress={() => {
                 setViewMode(mode);
@@ -383,7 +373,7 @@ export default function ChartsScreen({ navigation }) {
                 style={[
                   styles.segmentText,
                   {
-                    color: viewMode === mode ? "#000000" : theme.subText,
+                    color: viewMode === mode ? theme.text : theme.subText,
                     fontWeight: viewMode === mode ? "700" : "500",
                   },
                 ]}
@@ -393,48 +383,53 @@ export default function ChartsScreen({ navigation }) {
             </TouchableOpacity>
           ))}
         </View>
+      </View>
 
-        {/* SUMMARY ROW */}
-        <View style={[styles.summaryRow, { backgroundColor: theme.surface2 }]}>
-          <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>Income</Text>
-            <Text
-              style={[styles.summaryVal, { color: "#2ECC71" }]}
-              numberOfLines={1}
-            >
-              +{currency}
-              {totalIncome.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
-          </View>
-          <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>Expense</Text>
-            <Text
-              style={[styles.summaryVal, { color: "#FF6B6B" }]}
-              numberOfLines={1}
-            >
-              -{currency}
-              {totalExpense.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
-          </View>
-          <View style={styles.summaryCol}>
-            <Text style={styles.summaryLabel}>Balance</Text>
-            <Text
-              style={[styles.summaryVal, { color: theme.text }]}
-              numberOfLines={1}
-            >
-              {netBalance >= 0 ? "+" : "-"}
-              {currency}
-              {Math.abs(netBalance).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-              })}
-            </Text>
-          </View>
+      {/* SUMMARY ROW */}
+      <View style={[styles.summaryRow, { backgroundColor: theme.surface2 }]}>
+        <View style={styles.summaryCol}>
+          <Text style={styles.summaryLabel}>Income</Text>
+          <Text
+            style={[styles.summaryVal, { color: "#2ECC71" }]}
+            numberOfLines={1}
+          >
+            +{currency}
+            {totalIncome.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </Text>
         </View>
+        <View style={styles.summaryCol}>
+          <Text style={styles.summaryLabel}>Expense</Text>
+          <Text
+            style={[styles.summaryVal, { color: "#FF6B6B" }]}
+            numberOfLines={1}
+          >
+            -{currency}
+            {totalExpense.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </Text>
+        </View>
+        <View style={styles.summaryCol}>
+          <Text style={styles.summaryLabel}>Balance</Text>
+          <Text
+            style={[styles.summaryVal, { color: theme.text }]}
+            numberOfLines={1}
+          >
+            {netBalance >= 0 ? "+" : "-"}
+            {currency}
+            {Math.abs(netBalance).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </Text>
+        </View>
+      </View>
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 10}}
+      >
         {/* PIE CHART SECTION */}
         <View style={[styles.chartCard, { backgroundColor: theme.surface }]}>
           {/* Chart Header */}
@@ -880,10 +875,9 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 55,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
+    paddingBottom: 10, 
   },
-  headerTopRow: { alignItems: "center", marginBottom: 10 },
+  headerTopRow: { alignItems: "center", marginBottom: 7 },
   headerBottomRow: { alignItems: "center" },
   headerTitle: { fontSize: 26, fontWeight: "900", letterSpacing: 0.5 },
   periodBtn: { flexDirection: "column" },
@@ -892,9 +886,14 @@ const styles = StyleSheet.create({
   periodLabel: { fontSize: 13, fontWeight: "600" },
 
   // Segment
+  segmentContainer: {
+    borderBottomWidth: 1,
+    paddingBottom: 10,
+  },
   segmentWrapper: {
     flexDirection: "row",
-    margin: 16,
+    marginHorizontal: 16,
+    marginTop: 1,
     borderRadius: 14,
     padding: 4,
     gap: 4,
@@ -911,7 +910,8 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 16,
+    marginBottom: 8,
     padding: 20,
     borderRadius: 20,
     backgroundColor: "transparent",

@@ -14,10 +14,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   ScrollView,
-  Modal,
-  Pressable,
   Dimensions,
-  Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../supabase/supabaseClient";
@@ -28,12 +25,9 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isSameDay,
-  isSameMonth,
-  getYear,
-  getMonth,
   startOfDay,
-  startOfWeek,
-  isAfter,
+  subDays,
+  isBefore,
 } from "date-fns";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -65,7 +59,8 @@ function TransactionItem({
   isSearchOpen,
 }) {
   const isExpense = item.type === "expense";
-  if (isGuest && index > 7 && !isSearchOpen) {
+  const sevenDaysAgo = subDays(new Date(), 7);
+  if (isGuest && isBefore(new Date(item.created_at), sevenDaysAgo) && !isSearchOpen) {
     return (
       <View
         style={[
@@ -143,8 +138,6 @@ export default function HomeScreen({ navigation, route }) {
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
-  const [startCalVisible, setStartCalVisible] = useState(false);
-  const [endCalVisible, setEndCalVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
 
   const scrollRef = useRef(null);
