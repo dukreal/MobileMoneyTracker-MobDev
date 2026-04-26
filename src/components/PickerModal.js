@@ -183,35 +183,29 @@ export default function PickerModal({
       keyExtractor={(item, index) => index.toString()}
       style={{ maxHeight: SCREEN_HEIGHT * 0.5 }}
       showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: 20 }}
       renderItem={({ item }) => {
         if (item.type === "header") {
           return (
-            <View
-              style={[
-                styles.weekHeader,
-                { backgroundColor: isDarkMode ? "#1a1a1a" : "#f9f9f9" },
-              ]}
-            >
-              <Text style={[styles.weekHeaderText, { color: theme.subText }]}>
+            <View style={styles.weekHeader}>
+              <View style={[styles.weekHeaderLine, { backgroundColor: theme.border }]} />
+              <Text style={[styles.weekHeaderText, { color: theme.subText, backgroundColor: theme.bg }]}>
                 {item.label}
               </Text>
+              <View style={[styles.weekHeaderLine, { backgroundColor: theme.border }]} />
             </View>
           );
         }
-        const isSelected = isSameWeek(item.start, currentValue, {
-          weekStartsOn: 1,
-        });
+
+        const isSelected = isSameWeek(item.start, currentValue, { weekStartsOn: 1 });
         const isToday = isSameWeek(item.start, new Date(), { weekStartsOn: 1 });
+
         return (
           <TouchableOpacity
             style={[
-              styles.weekRow,
-              { borderBottomColor: theme.border },
-              isSelected && {
-                backgroundColor: activeBlue + "10",
-                borderLeftWidth: 4,
-                borderLeftColor: activeBlue,
-              },
+              styles.weekCard,
+              { backgroundColor: isSelected ? activeBlue + "15" : theme.itemBg },
+              isSelected && { borderColor: activeBlue, borderWidth: 1.5 }
             ]}
             onPress={() => {
               onSelect(item.start);
@@ -219,34 +213,28 @@ export default function PickerModal({
             }}
           >
             <View style={{ flex: 1 }}>
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-              >
-                <Text
-                  style={{
-                    color: isSelected ? activeBlue : theme.text,
-                    fontWeight: "700",
-                    fontSize: 15,
-                  }}
-                >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={[styles.weekDateRange, { color: isSelected ? activeBlue : theme.text }]}>
                   {format(item.start, "MMM d")} – {format(item.end, "MMM d")}
                 </Text>
                 {isToday && (
                   <View style={styles.currentBadge}>
-                    <Text style={styles.currentBadgeText}>CURRENT</Text>
+                    <Text style={styles.currentBadgeText}> CURRENT</Text>
                   </View>
                 )}
               </View>
-              <Text
-                style={{ color: theme.subText, fontSize: 12, marginTop: 2 }}
-              >
-                Full range: {format(item.start, "MMMM d")} to{" "}
-                {format(item.end, "MMMM d, yyyy")}
+              <Text style={[styles.weekFullYear, { color: theme.subText }]}>
+                {format(item.start, "yyyy")}
               </Text>
             </View>
-            {isSelected && (
-              <Ionicons name="checkmark-circle" size={22} color={activeBlue} />
-            )}
+
+            <View style={{ alignItems: "flex-end" }}>
+               {isSelected ? (
+                 <Ionicons name="checkmark-circle" size={24} color={activeBlue} />
+               ) : (
+                 <Ionicons name="chevron-forward" size={18} color={theme.subText} />
+               )}
+            </View>
           </TouchableOpacity>
         );
       }}
@@ -513,22 +501,53 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(128,128,128,0.15)",
   },
   weekHeader: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginHorizontal: -20,
-    marginBottom: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 15,
+    paddingHorizontal: 10,
+  },
+  weekHeaderLine: {
+    flex: 1,
+    height: 1,
+    opacity: 0.5,
   },
   weekHeaderText: {
     fontSize: 11,
     fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    paddingHorizontal: 10,
+    textAlign: "center",
   },
-  currentBadge: {
-    backgroundColor: "#2ecc7120",
+  weekCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  weekDateRange: {
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+  },
+  weekFullYear: {
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+    opacity: 0.8,
+  },
+    currentBadge: {
+    backgroundColor: "#2ecc71",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
-  currentBadgeText: { color: "#2ecc71", fontSize: 9, fontWeight: "900" },
+  currentBadgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "900",
+  },
 });
