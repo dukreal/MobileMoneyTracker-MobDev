@@ -376,7 +376,7 @@ export default function HomeScreen({ navigation, route }) {
         contentContainerStyle={
           filteredTransactions.length === 0
             ? { flexGrow: 1 }
-            : { paddingBottom: 100 }
+            : { paddingBottom: 15 }
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
