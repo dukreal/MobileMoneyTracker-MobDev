@@ -19,7 +19,6 @@ import {
   startOfMonth,
   isSameWeek,
   isSameMonth,
-  startOfDay,
 } from "date-fns";
 import { CATEGORIES } from "../constants/Categories";
 import PickerModal from "../components/PickerModal";
@@ -61,7 +60,7 @@ export default function ChartsScreen({ navigation }) {
     surface2: isDarkMode ? "#1e1e1e" : "#f9f9f9",
     text: isDarkMode ? "#ffffff" : "#000000",
     subText: isDarkMode ? "#8e8e93" : "#8e8e93",
-    border: isDarkMode ? "#38383a" : "#e5e5ea",
+    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
     accent: "#4A90E2",
   };
 
@@ -386,7 +385,7 @@ export default function ChartsScreen({ navigation }) {
       </View>
 
       {/* SUMMARY ROW */}
-      <View style={[styles.summaryRow, { backgroundColor: theme.surface2 }]}>
+      <View style={[styles.summaryRow, { backgroundColor: theme.surface }]}>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Income</Text>
           <Text
@@ -428,7 +427,7 @@ export default function ChartsScreen({ navigation }) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 10}}
+        contentContainerStyle={{ paddingTop: 0}}
       >
         {/* PIE CHART SECTION */}
         <View style={[styles.chartCard, { backgroundColor: theme.surface }]}>
@@ -772,19 +771,11 @@ export default function ChartsScreen({ navigation }) {
                   ]}
                 >
                   <Ionicons
-                    name={
-                      selectedSlice.label === "Others"
-                        ? getCatIcon(tx.parent_category, tx.sub_category).icon
-                        : tx.type === "income"
-                          ? "arrow-up"
-                          : "arrow-down"
-                    }
+                    name={getCatIcon(tx.parent_category, tx.sub_category).icon}
                     size={16}
-                    color={
-                      getCatIcon(tx.parent_category, tx.sub_category).color
-                    }
+                    color={getCatIcon(tx.parent_category, tx.sub_category).color}
                   />
-                  {selectedSlice.label === "Others" && (
+                  {(viewMode === "year" || selectedSlice?.label === "Others") && (
                     <View
                       style={{
                         position: "absolute",
@@ -888,7 +879,7 @@ const styles = StyleSheet.create({
   // Segment
   segmentContainer: {
     borderBottomWidth: 1,
-    paddingBottom: 10,
+    paddingBottom: 20,
   },
   segmentWrapper: {
     flexDirection: "row",
@@ -909,16 +900,14 @@ const styles = StyleSheet.create({
   // Summary
   summaryRow: {
     flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
+    margin: 15,
     padding: 20,
     borderRadius: 20,
-    backgroundColor: "transparent",
   },
+
   summaryCol: { flex: 1, alignItems: "center" },
   summaryLabel: { fontSize: 11, color: "#999", marginBottom: 5 },
-  summaryVal: { fontSize: 14, fontWeight: "bold" },
+  summaryVal: { fontSize: 15, fontWeight: "bold" },
 
   // Chart card
   chartCard: {

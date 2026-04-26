@@ -124,7 +124,9 @@ function TransactionItem({
       >
         {isExpense ? "-" : "+"}
         {currency}
-        {item.amount.toFixed(2)}
+        {Number(item.amount).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+        })}
       </Text>
     </TouchableOpacity>
   );
@@ -231,45 +233,51 @@ export default function HomeScreen({ navigation, route }) {
 
         {/* Row 2 — Year+Month | Icons */}
         <View style={styles.headerMainRow}>
-          <TouchableOpacity
-            style={styles.monthSelectorTrigger}
-            onPress={() => setCalendarVisible(true)}
-          >
-            <Text style={styles.yearSubLabel}>
-              {format(selectedDate, "yyyy")}
-            </Text>
-            <View style={styles.monthDisplayRow}>
-              <Text style={[styles.monthLargeText, { color: theme.text }]}>
-                {format(selectedDate, "MMMM")}
+          <View style={{ position: "absolute", left: 0, right: 0, alignItems: "center" }}>
+            <TouchableOpacity
+              style={styles.monthDisplayRow}
+              onPress={() => setCalendarVisible(true)}
+            >
+              <Text style={[styles.monthLargeText, { color: "#4A90E2" }]}>
+                {format(selectedDate, "MMMM yyyy")}
               </Text>
-              <Ionicons
-                name="chevron-down"
-                size={18}
-                color={theme.text}
-                style={{ marginLeft: 6, marginTop: 4 }}
-              />
-            </View>
-          </TouchableOpacity>
-          <View style={styles.headerIcons}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Search")}
-              style={[
-                styles.circleIconBtn,
-                { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-              ]}
-            >
-              <Ionicons name="search" size={20} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {}}
-              style={[
-                styles.circleIconBtn,
-                { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-              ]}
-            >
-              <Ionicons name="settings-outline" size={20} color={theme.text} />
+              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
           </View>
+          {/* Left — Search */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Search")}
+          style={[
+            styles.circleIconBtn,
+            { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
+          ]}
+        >
+          <Ionicons name="search" size={20} color={theme.text} />
+        </TouchableOpacity>
+
+        {/* Center — Month pill (already absolute, no change needed) */}
+
+        {/* Right — Share + Settings */}
+        <View style={styles.headerIcons}>
+          <TouchableOpacity
+            onPress={() => {}}
+            style={[
+              styles.circleIconBtn,
+              { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
+            ]}
+          >
+            <Ionicons name="share-outline" size={20} color={theme.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {}}
+            style={[
+              styles.circleIconBtn,
+              { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
+            ]}
+          >
+            <Ionicons name="settings-outline" size={20} color={theme.text} />
+          </TouchableOpacity>
+        </View>
         </View>
       </View>
 
@@ -332,25 +340,25 @@ export default function HomeScreen({ navigation, route }) {
 
       {/* SUMMARY */}
       <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
-        <View style={styles.summaryCol}>
+       <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Income</Text>
           <Text style={[styles.summaryVal, { color: "#2ECC71" }]}>
             +{currency}
-            {income.toFixed(2)}
+            {income.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
         </View>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Expense</Text>
           <Text style={[styles.summaryVal, { color: "#FF6B6B" }]}>
             -{currency}
-            {expense.toFixed(2)}
+            {expense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
         </View>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Balance</Text>
           <Text style={[styles.summaryVal, { color: theme.text }]}>
-            {currency}
-            {(income - expense).toFixed(2)}
+            {income - expense >= 0 ? "" : "-"}{currency}
+            {Math.abs(income - expense).toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
         </View>
       </View>
@@ -413,17 +421,26 @@ export default function HomeScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerContainer: { paddingHorizontal: 20, paddingTop: 55, paddingBottom: 10 },
-  appNameRow: { alignItems: "center", marginBottom: 10 },
+  headerContainer: { paddingHorizontal: 20, paddingTop: 55, paddingBottom: 0 }, // ← change this
+  appNameRow: { alignItems: "center", marginBottom: 4 },
   appNameText: { fontSize: 26, fontWeight: "900", letterSpacing: 0.5 },
   headerMainRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    position: "relative",
   },
   yearSubLabel: { fontSize: 13, color: "#777", fontWeight: "700" },
-  monthLargeText: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
-  monthDisplayRow: { flexDirection: "row", alignItems: "center" },
+  monthLargeText: { fontSize: 15, fontWeight: "700" },
+  monthDisplayRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4A90E220",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
   headerIcons: { flexDirection: "row", alignItems: "center" },
   circleIconBtn: {
     width: 40,

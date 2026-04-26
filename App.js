@@ -45,7 +45,7 @@ function MainTabs() {
             iconName = focused ? "wallet" : "wallet-outline";
           } else if (route.name === "Add") {
             iconName = focused ? "add-circle" : "add-circle-outline";
-          } else if (route.name === "Charts") {
+          } else if (route.name === "Analytics") {
             iconName = focused ? "bar-chart" : "bar-chart-outline";
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline";
@@ -88,7 +88,7 @@ function MainTabs() {
         options={{ headerShown: false }}
       />
       <Tab.Screen
-        name="Charts"
+        name="Analytics"
         component={ChartsScreen}
         options={{ headerShown: false }}
       />

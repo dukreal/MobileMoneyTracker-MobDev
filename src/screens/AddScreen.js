@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     paddingTop: 55,
-    paddingBottom: 12,
+    paddingBottom: 1,
     paddingHorizontal: 24,
     alignItems: "center",
     gap: 4.5,
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: -9,
   },
   heroCurrency: {
     fontSize: 22,
