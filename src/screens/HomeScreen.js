@@ -11,6 +11,7 @@ import {
   Text,
   FlatList,
   StyleSheet,
+  RefreshControl,
   TouchableOpacity,
   ScrollView,
   Modal,
@@ -98,7 +99,7 @@ function TransactionItem({
         style={[
           styles.circleIconBtn,
           {
-            backgroundColor: isExpense ? "#ff3b3022" : "#34c75922",
+            backgroundColor: isExpense ? "#FF6B6B22" : "#2ECC7122",
             marginLeft: 0,
             width: 36,
             height: 36,
@@ -108,7 +109,7 @@ function TransactionItem({
         <Ionicons
           name={isExpense ? "arrow-down" : "arrow-up"}
           size={18}
-          color={isExpense ? "#ff3b30" : "#34c759"}
+          color={isExpense ? "#FF6B6B" : "#2ECC71"}
         />
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
@@ -124,7 +125,7 @@ function TransactionItem({
         </Text>
       </View>
       <Text
-        style={[styles.txAmount, { color: isExpense ? "#ff3b30" : "#34c759" }]}
+        style={[styles.txAmount, { color: isExpense ? "#FF6B6B" : "#2ECC71" }]}
       >
         {isExpense ? "-" : "+"}
         {currency}
@@ -140,6 +141,7 @@ export default function HomeScreen({ navigation, route }) {
 
   // States
   const [transactions, setTransactions] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [startCalVisible, setStartCalVisible] = useState(false);
   const [endCalVisible, setEndCalVisible] = useState(false);
@@ -167,6 +169,12 @@ export default function HomeScreen({ navigation, route }) {
       .order("created_at", { ascending: false });
     if (!error && data) setTransactions(data);
   }, [user?.id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchTransactions();
+    setRefreshing(false);
+  }, [fetchTransactions]);
 
   useFocusEffect(
     useCallback(() => {
@@ -333,14 +341,14 @@ export default function HomeScreen({ navigation, route }) {
       <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Income</Text>
-          <Text style={[styles.summaryVal, { color: "#34c759" }]}>
+          <Text style={[styles.summaryVal, { color: "#2ECC71" }]}>
             +{currency}
             {income.toFixed(2)}
           </Text>
         </View>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>Expense</Text>
-          <Text style={[styles.summaryVal, { color: "#ff3b30" }]}>
+          <Text style={[styles.summaryVal, { color: "#FF6B6B" }]}>
             -{currency}
             {expense.toFixed(2)}
           </Text>
@@ -357,6 +365,14 @@ export default function HomeScreen({ navigation, route }) {
       <FlatList
         data={filteredTransactions}
         keyExtractor={(item) => item.id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDarkMode ? "#fff" : "#000"} // For iOS
+            colors={["#4A90E2"]} // For Android
+          />
+        }
         contentContainerStyle={
           filteredTransactions.length === 0
             ? { flexGrow: 1 }

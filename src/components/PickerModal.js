@@ -83,7 +83,7 @@ export default function PickerModal({
       ]).start();
     }
   }, [visible]);
-
+  
   const handleClose = () => {
     Animated.parallel([
       Animated.timing(overlayOpacity, {
@@ -137,6 +137,16 @@ export default function PickerModal({
     return res;
   }, []);
 
+  // 1. Calculate the position of the selected week
+  const initialWeekIndex = useMemo(() => {
+    if (mode !== 'week' || !currentValue) return 0;
+    const idx = weeks.findIndex(w => w.type === 'week' && isSameWeek(w.start, currentValue, { weekStartsOn: 1 }));
+    
+    // To center the item, we start the list 2 items higher.
+    // If it's near the top (index 0, 1, or 2), we just start at 0.
+    return idx > 2 ? idx - 2 : 0;
+  }, [visible]);
+
   const calendarDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 0 });
     const end = endOfWeek(endOfMonth(viewDate), { weekStartsOn: 0 });
@@ -152,26 +162,10 @@ export default function PickerModal({
       keyExtractor={(item) => item.toString()}
       renderItem={({ item }) => (
         <TouchableOpacity
-          style={[
-            styles.gridItem,
-            {
-              backgroundColor:
-                item === currentValue ? activeBlue : theme.itemBg,
-            },
-          ]}
-          onPress={() => {
-            onSelect(item);
-            handleClose();
-          }}
+          style={[styles.gridItem, { backgroundColor: item === currentValue ? activeBlue : theme.itemBg }]}
+          onPress={() => { onSelect(item); handleClose(); }}
         >
-          <Text
-            style={{
-              color: item === currentValue ? "#fff" : theme.text,
-              fontWeight: "700",
-            }}
-          >
-            {item}
-          </Text>
+          <Text style={{ color: item === currentValue ? "#fff" : theme.text, fontWeight: "700" }}>{item}</Text>
         </TouchableOpacity>
       )}
     />
@@ -183,57 +177,39 @@ export default function PickerModal({
       keyExtractor={(item, index) => index.toString()}
       style={{ maxHeight: SCREEN_HEIGHT * 0.5 }}
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 20 }}
+      initialScrollIndex={initialWeekIndex}
+      getItemLayout={(data, index) => {
+        // Precise heights: Headers are 46, Cards are 92
+        const length = data[index].type === 'header' ? 46 : 92;
+        return { length, offset: length * index, index };
+      }}
+      onScrollToIndexFailed={() => {}}
       renderItem={({ item }) => {
         if (item.type === "header") {
           return (
             <View style={styles.weekHeader}>
               <View style={[styles.weekHeaderLine, { backgroundColor: theme.border }]} />
-              <Text style={[styles.weekHeaderText, { color: theme.subText, backgroundColor: theme.bg }]}>
-                {item.label}
-              </Text>
+              <Text style={[styles.weekHeaderText, { color: theme.subText, backgroundColor: theme.bg }]}>{item.label}</Text>
               <View style={[styles.weekHeaderLine, { backgroundColor: theme.border }]} />
             </View>
           );
         }
-
         const isSelected = isSameWeek(item.start, currentValue, { weekStartsOn: 1 });
         const isToday = isSameWeek(item.start, new Date(), { weekStartsOn: 1 });
-
         return (
           <TouchableOpacity
-            style={[
-              styles.weekCard,
-              { backgroundColor: isSelected ? activeBlue + "15" : theme.itemBg },
-              isSelected && { borderColor: activeBlue, borderWidth: 1.5 }
-            ]}
-            onPress={() => {
-              onSelect(item.start);
-              handleClose();
-            }}
+            style={[styles.weekCard, { backgroundColor: isSelected ? activeBlue + "15" : theme.itemBg }, isSelected && { borderColor: activeBlue, borderWidth: 1.5 }]}
+            onPress={() => { onSelect(item.start); handleClose(); }}
           >
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Text style={[styles.weekDateRange, { color: isSelected ? activeBlue : theme.text }]}>
-                  {format(item.start, "MMM d")} – {format(item.end, "MMM d")}
-                </Text>
-                {isToday && (
-                  <View style={styles.currentBadge}>
-                    <Text style={styles.currentBadgeText}> CURRENT</Text>
-                  </View>
-                )}
+                <Text style={[styles.weekDateRange, { color: isSelected ? activeBlue : theme.text }]}>{format(item.start, "MMM d")} – {format(item.end, "MMM d")}</Text>
+                {isToday && <View style={styles.currentBadge}><Text style={styles.currentBadgeText}> CURRENT</Text></View>}
               </View>
-              <Text style={[styles.weekFullYear, { color: theme.subText }]}>
-                {format(item.start, "yyyy")}
-              </Text>
+              <Text style={[styles.weekFullYear, { color: theme.subText }]}>{format(item.start, "yyyy")}</Text>
             </View>
-
             <View style={{ alignItems: "flex-end" }}>
-               {isSelected ? (
-                 <Ionicons name="checkmark-circle" size={24} color={activeBlue} />
-               ) : (
-                 <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-               )}
+               {isSelected ? <Ionicons name="checkmark-circle" size={24} color={activeBlue} /> : <Ionicons name="chevron-forward" size={18} color={theme.subText} />}
             </View>
           </TouchableOpacity>
         );
