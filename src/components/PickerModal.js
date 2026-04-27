@@ -61,13 +61,19 @@ export default function PickerModal({
   const insets = useSafeAreaInsets();
   const activeBlue = "#0081db";
   const [viewDate, setViewDate] = useState(new Date());
+  const [localSelected, setLocalSelected] = useState(null);
+  const [localMonth, setLocalMonth] = useState(null);
 
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
 
   useEffect(() => {
     if (visible) {
-      if (currentValue instanceof Date) setViewDate(currentValue);
+      setLocalSelected(currentValue);
+      if (currentValue instanceof Date) {
+        setViewDate(currentValue);
+        setLocalMonth(getMonth(currentValue));
+      }
       Animated.parallel([
         Animated.timing(overlayOpacity, {
           toValue: 1,
@@ -162,10 +168,10 @@ export default function PickerModal({
       keyExtractor={(item) => item.toString()}
       renderItem={({ item }) => (
         <TouchableOpacity
-          style={[styles.gridItem, { backgroundColor: item === currentValue ? activeBlue : theme.itemBg }]}
-          onPress={() => { onSelect(item); handleClose(); }}
+          style={[styles.gridItem, { backgroundColor: item === (localSelected ?? currentValue) ? activeBlue : theme.itemBg }]}
+          onPress={() => { setLocalSelected(item); }}
         >
-          <Text style={{ color: item === currentValue ? "#fff" : theme.text, fontWeight: "700" }}>{item}</Text>
+          <Text style={{ color: item === (localSelected ?? currentValue) ? "#fff" : theme.text, fontWeight: "700" }}>{item}</Text>
         </TouchableOpacity>
       )}
     />
@@ -179,9 +185,12 @@ export default function PickerModal({
       showsVerticalScrollIndicator={false}
       initialScrollIndex={initialWeekIndex}
       getItemLayout={(data, index) => {
-        // Precise heights: Headers are 46, Cards are 92
         const length = data[index].type === 'header' ? 46 : 92;
-        return { length, offset: length * index, index };
+        let offset = 0;
+        for (let i = 0; i < index; i++) {
+          offset += data[i].type === 'header' ? 46 : 92;
+        }
+        return { length, offset, index };
       }}
       onScrollToIndexFailed={() => {}}
       renderItem={({ item }) => {
@@ -194,12 +203,12 @@ export default function PickerModal({
             </View>
           );
         }
-        const isSelected = isSameWeek(item.start, currentValue, { weekStartsOn: 1 });
+        const isSelected = isSameWeek(item.start, localSelected ?? currentValue, { weekStartsOn: 1 });
         const isToday = isSameWeek(item.start, new Date(), { weekStartsOn: 1 });
         return (
           <TouchableOpacity
             style={[styles.weekCard, { backgroundColor: isSelected ? activeBlue + "15" : theme.itemBg }, isSelected && { borderColor: activeBlue, borderWidth: 1.5 }]}
-            onPress={() => { onSelect(item.start); handleClose(); }}
+            onPress={() => { setLocalSelected(item.start); }}
           >
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -243,8 +252,7 @@ export default function PickerModal({
       </View>
       <View style={styles.monthGrid}>
         {MONTHS_SHORT.map((m, i) => {
-          const isSelected =
-            i === getMonth(viewDate) && isSameMonth(viewDate, currentValue);
+          const isSelected = i === localMonth;
           const today = new Date();
           const isThisYear = getYear(viewDate) === today.getFullYear();
           const isFutureMonth = isThisYear && i > today.getMonth();
@@ -264,9 +272,13 @@ export default function PickerModal({
                 if (isFutureMonth) return;
                 const d = setMonth(viewDate, i);
                 setViewDate(d);
+                setLocalMonth(i);
                 if (isMonthOnly) {
+                  setLocalSelected(d);
                   onSelect(d);
                   handleClose();
+                } else {
+                  setLocalSelected(null);
                 }
               }}
             >
@@ -294,7 +306,7 @@ export default function PickerModal({
             </Text>
           ))}
           {calendarDays.map((day, i) => {
-            const isSelected = isSameDay(day, currentValue);
+            const isSelected = isSameDay(day, localSelected || currentValue);
             const inMonth = isSameMonth(day, viewDate);
             const isFutureDay = isAfter(
               startOfDay(day),
@@ -311,8 +323,7 @@ export default function PickerModal({
                 ]}
                 onPress={() => {
                   if (isFutureDay) return;
-                  onSelect(day);
-                  handleClose();
+                  setLocalSelected(day);
                 }}
               >
                 {inMonth && (
@@ -372,7 +383,10 @@ export default function PickerModal({
             {mode === "date" && renderCalendar(false)}
           </View>
           <TouchableOpacity
-            onPress={handleClose}
+            onPress={() => {
+              if (localSelected) onSelect(localSelected);
+              handleClose();
+            }}
             style={styles.doneBtn}
           >
             <Text

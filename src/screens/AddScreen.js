@@ -23,8 +23,9 @@ import { useStore } from "../store/useStore";
 import { CATEGORIES } from "../constants/Categories";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { router } from "expo-router";
 
-export default function AddScreen({ navigation }) {
+export default function AddScreen() {
   const { isDarkMode, user, currency } = useStore();
   const [loading, setLoading] = useState(false);
   const [inputKey, setInputKey] = useState(0);
@@ -208,7 +209,7 @@ export default function AddScreen({ navigation }) {
       ]);
       if (error) throw error;
       resetFields();
-      navigation.navigate("Home", { selectedDate: new Date().toISOString() });
+      router.replace("/(tabs)");
     } catch (err) {
       Alert.alert("Save Failed", err.message);
     } finally {

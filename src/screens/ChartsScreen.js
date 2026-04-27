@@ -10,7 +10,7 @@ import {
 import { PieChart } from "react-native-gifted-charts";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
   format,
@@ -22,6 +22,7 @@ import {
 } from "date-fns";
 import { CATEGORIES } from "../constants/Categories";
 import PickerModal from "../components/PickerModal";
+import { router } from "expo-router";
 
 const getCatIcon = (parentCategory, subCategory) => {
   const found =
@@ -39,7 +40,7 @@ const getCatIcon = (parentCategory, subCategory) => {
   }
   return { icon: "ellipse", color: "#888" };
 };
-export default function ChartsScreen({ navigation }) {
+export default function ChartsScreen() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("month");
@@ -758,7 +759,7 @@ export default function ChartsScreen({ navigation }) {
                     borderBottomWidth: index < drillTxs.length - 1 ? 1 : 0,
                   },
                 ]}
-                onPress={() => navigation.navigate("Details", { item: tx })}
+                onPress={() => router.push({ pathname: "/details", params: { item: JSON.stringify(tx) } })}
               >
                 <View
                   style={[

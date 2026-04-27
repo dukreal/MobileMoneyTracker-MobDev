@@ -12,23 +12,17 @@ import {
   Pressable,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useFocusEffect } from "@react-navigation/native";
+import { router, useFocusEffect } from "expo-router";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
-import {
-  isSameDay, startOfDay, format,
-  startOfMonth, endOfMonth, eachDayOfInterval,
-  addYears, subYears, isSameMonth,
-  setMonth, getYear, getMonth,
-  startOfWeek, endOfWeek, isAfter,
-} from "date-fns";
+import { startOfDay, format } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 import CalendarModal from "../components/CalendarModal";
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // ─── TRANSACTION ITEM ─────────────────────────────────────────────────────────
-function TransactionItem({ item, theme, currency, navigation, index }) {
+function TransactionItem({ item, theme, currency, index }) {
   const isExpense = item.type === "expense";
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(10)).current;
@@ -44,7 +38,7 @@ function TransactionItem({ item, theme, currency, navigation, index }) {
     <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
       <TouchableOpacity
         style={[s.txCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-        onPress={() => navigation.navigate("Details", { item })}
+        onPress={() => router.push({ pathname: "/details", params: { item: JSON.stringify(item) } })}
         activeOpacity={0.7}
       >
         <View style={[s.txIcon, { backgroundColor: isExpense ? "#FF6B6B15" : "#2ECC7115" }]}>
@@ -70,7 +64,7 @@ function TransactionItem({ item, theme, currency, navigation, index }) {
 }
 
 // ─── SEARCH SCREEN ────────────────────────────────────────────────────────────
-export default function SearchScreen({ navigation }) {
+export default function SearchScreen() {
   const { currency, isDarkMode, user } = useStore();
   const [transactions, setTransactions] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -171,7 +165,7 @@ export default function SearchScreen({ navigation }) {
 
       {/* HEADER */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Ionicons name="chevron-back" size={26} color={theme.text} />
         </TouchableOpacity>
         <View style={[s.searchBar, { backgroundColor: theme.inputBg }]}>
@@ -226,7 +220,7 @@ export default function SearchScreen({ navigation }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         renderItem={({ item, index }) => (
-          <TransactionItem item={item} index={index} theme={theme} currency={currency} navigation={navigation} />
+          <TransactionItem item={item} index={index} theme={theme} currency={currency} />
         )}
         ListHeaderComponent={
           <Text style={[s.resultsLabel, { color: theme.subText, opacity: (searchQuery.length > 0 || (searchStartDate && searchEndDate)) && searchResults.length > 0 ? 1 : 0 }]}>

@@ -16,7 +16,7 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { router, useFocusEffect } from "expo-router";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
 import {
@@ -55,7 +55,6 @@ function TransactionItem({
   theme,
   currency,
   isGuest,
-  navigation,
   isSearchOpen,
 }) {
   const isExpense = item.type === "expense";
@@ -88,7 +87,7 @@ function TransactionItem({
         styles.txCard,
         { backgroundColor: theme.card, borderColor: theme.border },
       ]}
-      onPress={() => navigation.navigate("Details", { item })}
+      onPress={() => router.push({ pathname: "/details", params: { item: JSON.stringify(item) } })}
     >
       <View
         style={[
@@ -133,7 +132,7 @@ function TransactionItem({
 }
 
 // --- 3. MAIN HOME SCREEN ---
-export default function HomeScreen({ navigation, route }) {
+export default function HomeScreen() {
   const { currency, isGuest, isDarkMode, user } = useStore();
 
   // States
@@ -174,13 +173,7 @@ export default function HomeScreen({ navigation, route }) {
   useFocusEffect(
     useCallback(() => {
       fetchTransactions();
-      // If navigated from AddScreen with a date, jump to it
-      if (route?.params?.selectedDate) {
-        const incoming = startOfDay(new Date(route.params.selectedDate));
-        selectionSource.current = "modal";
-        setSelectedDate(incoming);
-      }
-    }, [fetchTransactions, route?.params?.selectedDate]),
+    }, [fetchTransactions]),
   );
 
   // Auto-scroll
@@ -246,7 +239,7 @@ export default function HomeScreen({ navigation, route }) {
           </View>
           {/* Left — Search */}
         <TouchableOpacity
-          onPress={() => navigation.navigate("Search")}
+          onPress={() => router.push("/search")}
           style={[
             styles.circleIconBtn,
             { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
@@ -398,7 +391,6 @@ export default function HomeScreen({ navigation, route }) {
             theme={theme}
             currency={currency}
             isGuest={isGuest}
-            navigation={navigation}
             isSearchOpen={false}
           />
         )}
