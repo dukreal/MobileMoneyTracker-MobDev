@@ -22,8 +22,7 @@ import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
 import { CATEGORIES } from "../constants/Categories";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
-import { router } from "expo-router";
+import { useFocusEffect, router } from "expo-router";
 
 export default function AddScreen() {
   const { isDarkMode, user, currency } = useStore();
@@ -193,10 +192,20 @@ export default function AddScreen() {
       return Alert.alert("Error", "Please select a category");
     setLoading(true);
     try {
-      const imageUrls = await uploadImagesToStorage(user.id);
+      let userId = user?.id;
+      if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id;
+      }
+      if (!userId) {
+        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+        userId = anonData?.user?.id;
+      }
+      if (!userId) return Alert.alert("Error", "Could not start a session.");
+      const imageUrls = await uploadImagesToStorage(userId);
       const { error } = await supabase.from("transactions").insert([
         {
-          user_id: user?.id,
+          user_id: userId,
           amount: parsedAmount,
           type: type,
           parent_category: selectedCat.name,
@@ -211,6 +220,7 @@ export default function AddScreen() {
       resetFields();
       router.replace("/(tabs)");
     } catch (err) {
+      console.log("Save error:", JSON.stringify(err));
       Alert.alert("Save Failed", err.message);
     } finally {
       setLoading(false);

@@ -19,10 +19,15 @@
     "android": {
       "package": "com.moneytracker.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": false, 
+      "androidNavigationBar": {
+        "visible": "always",
+        "barStyle": "light-content",
+        "backgroundColor": "#121212"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

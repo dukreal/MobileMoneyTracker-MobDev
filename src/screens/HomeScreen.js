@@ -156,10 +156,16 @@ export default function HomeScreen() {
   };
 
   const fetchTransactions = useCallback(async () => {
+    let userId = user?.id;
+    if (!userId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id;
+    }
+    if (!userId) return;
     const { data, error } = await supabase
       .from("transactions")
       .select("*")
-      .eq("user_id", user?.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (!error && data) setTransactions(data);
   }, [user?.id]);
@@ -173,7 +179,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchTransactions();
-    }, [fetchTransactions]),
+    }, []),
   );
 
   // Auto-scroll

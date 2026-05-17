@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const useStore = create(
   persist(
     (set, get) => ({
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
       session: null,
       user: null,
       isGuest: true,
@@ -30,8 +32,11 @@ export const useStore = create(
       logout: () => set({ session: null, user: null, isGuest: true, transactions: [] }),
     }),
     {
-      name: 'money-tracker-storage', // unique name for storage
+      name: 'money-tracker-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        state.setHasHydrated(true);
+      },
     }
   )
 );

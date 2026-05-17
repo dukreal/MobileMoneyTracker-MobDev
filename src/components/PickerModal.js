@@ -123,7 +123,7 @@ export default function PickerModal({
   const weeks = useMemo(() => {
     const res = [];
     const today = new Date();
-    let currentCursor = startOfWeek(today, { weekStartsOn: 1 });
+    let currentCursor = startOfWeek(today, { weekStartsOn: 0 });
     const stopDate = startOfYear(subYears(today, 0));
     let lastMonthSeen = -1;
 
@@ -136,7 +136,7 @@ export default function PickerModal({
       res.push({
         type: "week",
         start: currentCursor,
-        end: endOfWeek(currentCursor, { weekStartsOn: 1 }),
+        end: endOfWeek(currentCursor, { weekStartsOn: 0 }),
       });
       currentCursor = addWeeks(currentCursor, -1);
     }
@@ -146,7 +146,7 @@ export default function PickerModal({
   // 1. Calculate the position of the selected week
   const initialWeekIndex = useMemo(() => {
     if (mode !== 'week' || !currentValue) return 0;
-    const idx = weeks.findIndex(w => w.type === 'week' && isSameWeek(w.start, currentValue, { weekStartsOn: 1 }));
+    const idx = weeks.findIndex(w => w.type === 'week' && isSameWeek(w.start, currentValue, { weekStartsOn: 0 }));
     
     // To center the item, we start the list 2 items higher.
     // If it's near the top (index 0, 1, or 2), we just start at 0.
@@ -203,8 +203,8 @@ export default function PickerModal({
             </View>
           );
         }
-        const isSelected = isSameWeek(item.start, localSelected ?? currentValue, { weekStartsOn: 1 });
-        const isToday = isSameWeek(item.start, new Date(), { weekStartsOn: 1 });
+        const isSelected = isSameWeek(item.start, localSelected ?? currentValue, { weekStartsOn: 0 });
+        const isToday = isSameWeek(item.start, new Date(), { weekStartsOn: 0 });
         return (
           <TouchableOpacity
             style={[styles.weekCard, { backgroundColor: isSelected ? activeBlue + "15" : theme.itemBg }, isSelected && { borderColor: activeBlue, borderWidth: 1.5 }]}

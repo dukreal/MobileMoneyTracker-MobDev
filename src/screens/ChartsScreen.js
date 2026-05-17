@@ -45,12 +45,10 @@ export default function ChartsScreen() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("month");
   const [selectedSlice, setSelectedSlice] = useState(null);
-  const [chartType, setChartType] = useState("expense"); // 'expense' | 'income'
+  const [chartType, setChartType] = useState("expense");
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState(
-    startOfWeek(new Date(), { weekStartsOn: 1 }),
-  );
+  const [selectedWeek, setSelectedWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const { isGuest, isDarkMode, currency, user } = useStore();
@@ -65,13 +63,22 @@ export default function ChartsScreen() {
     accent: "#4A90E2",
   };
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     try {
+      let userId = user?.id;
+      if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id;
+      }
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
       const { data, error } = await supabase
         .from("transactions")
         .select("*")
-        .eq("user_id", user?.id);
+        .eq("user_id", userId);
       if (error) throw error;
       setTransactions(data || []);
     } catch {
@@ -79,7 +86,7 @@ export default function ChartsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -92,12 +99,12 @@ export default function ChartsScreen() {
     return transactions.filter((t) => {
       const d = new Date(t.created_at);
       if (viewMode === "week")
-        return isSameWeek(d, selectedWeek, { weekStartsOn: 1 });
+        return isSameWeek(d, selectedWeek, { weekStartsOn: 0 });
       if (viewMode === "month") return isSameMonth(d, selectedMonth);
-      if (viewMode === "year") return d.getFullYear() === selectedYear; // Fixed: Uses state variable
+      if (viewMode === "year") return d.getFullYear() === selectedYear;
       return true;
     });
-  }, [transactions, viewMode, selectedMonth, selectedWeek, selectedYear]); // Added selectedYear here
+  }, [transactions, viewMode, selectedMonth, selectedWeek, selectedYear]);
 
   const expenseTxs = useMemo(
     () => filteredTxs.filter((t) => t.type === "expense"),
@@ -221,7 +228,7 @@ export default function ChartsScreen() {
   const periodLabel = useMemo(() => {
     if (viewMode === "week") {
       const ws = selectedWeek;
-      const we = endOfWeek(selectedWeek, { weekStartsOn: 1 });
+      const we = endOfWeek(selectedWeek, { weekStartsOn: 0 });
       return `${format(ws, "MMMM d")} – ${format(we, "MMMM d, yyyy")}`;
     }
     if (viewMode === "month") return format(selectedMonth, "MMMM yyyy");
@@ -268,33 +275,6 @@ export default function ChartsScreen() {
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [selectedSlice, expenseTxs, incomeTxs, pieData, chartType, viewMode]);
 
-  if (isGuest) {
-    return (
-      <View style={[styles.center, { backgroundColor: theme.bg }]}>
-        <View style={[styles.lockCard, { backgroundColor: theme.surface }]}>
-          <View
-            style={[
-              styles.lockIconCircle,
-              { backgroundColor: isDarkMode ? "#2c2c2e" : "#f2f2f7" },
-            ]}
-          >
-            <Ionicons
-              name="lock-closed"
-              size={36}
-              color={isDarkMode ? "#555" : "#c7c7cc"}
-            />
-          </View>
-          <Text style={[styles.lockTitle, { color: theme.text }]}>
-            Analytics Locked
-          </Text>
-          <Text style={[styles.lockSub, { color: theme.subText }]}>
-            Log in to see your full financial analytics.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
   const sortedPieData = [...pieData].sort((a, b) =>
     a.label === "Others" ? 1 : b.label === "Others" ? -1 : b.value - a.value,
   );
@@ -323,7 +303,7 @@ export default function ChartsScreen() {
               onPress={() => setPickerVisible(true)}
             >
               <Text style={styles.periodPillText}>
-                {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 1 })
+                {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 0 })
                   ? "This Week"
                   : periodLabel}
               </Text>
@@ -428,7 +408,7 @@ export default function ChartsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 0}}
+        contentContainerStyle={{ paddingTop: 0 }}
       >
         {/* PIE CHART SECTION */}
         <View style={[styles.chartCard, { backgroundColor: theme.surface }]}>
@@ -759,7 +739,12 @@ export default function ChartsScreen() {
                     borderBottomWidth: index < drillTxs.length - 1 ? 1 : 0,
                   },
                 ]}
-                onPress={() => router.push({ pathname: "/details", params: { item: JSON.stringify(tx) } })}
+                onPress={() =>
+                  router.push({
+                    pathname: "/details",
+                    params: { item: JSON.stringify(tx) },
+                  })
+                }
               >
                 <View
                   style={[
@@ -774,9 +759,12 @@ export default function ChartsScreen() {
                   <Ionicons
                     name={getCatIcon(tx.parent_category, tx.sub_category).icon}
                     size={16}
-                    color={getCatIcon(tx.parent_category, tx.sub_category).color}
+                    color={
+                      getCatIcon(tx.parent_category, tx.sub_category).color
+                    }
                   />
-                  {(viewMode === "year" || selectedSlice?.label === "Others") && (
+                  {(viewMode === "year" ||
+                    selectedSlice?.label === "Others") && (
                     <View
                       style={{
                         position: "absolute",
@@ -867,7 +855,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 55,
-    paddingBottom: 10, 
+    paddingBottom: 10,
   },
   headerTopRow: { alignItems: "center", marginBottom: 7 },
   headerBottomRow: { alignItems: "center" },

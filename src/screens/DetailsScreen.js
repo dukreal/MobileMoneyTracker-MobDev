@@ -295,7 +295,7 @@ export default function DetailsScreen({ item }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionBtn}
-          onPress={() => router.push({ pathname: "/edit", params: { item: JSON.stringify(item) } })}
+          onPress={() => router.back({ pathname: "/edit", params: { item: JSON.stringify(item) } })}
         >
           <View style={[styles.actionIcon, { backgroundColor: "#f39c1222" }]}>
             <Ionicons name="create" size={22} color="#f39c12" />

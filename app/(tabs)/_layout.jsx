@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "../../src/store/useStore";
+import React from "react";
 
 export default function TabsLayout() {
   const { isDarkMode } = useStore();
@@ -10,8 +11,9 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      sceneContainerStyle={{ backgroundColor: "transparent" }}
+      sceneContainerStyle={{ backgroundColor: bgColor }}
       screenOptions={({ route }) => ({
+        lazy: true,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
           if (route.name === "index") {
@@ -32,6 +34,9 @@ export default function TabsLayout() {
           borderTopColor: isDarkMode ? "#333" : "#eee",
           elevation: 0,
           borderTopWidth: 1,
+          height: 65, 
+          paddingBottom: 10,
+          paddingTop: 5,
         },
         headerShown: false,
       })}
