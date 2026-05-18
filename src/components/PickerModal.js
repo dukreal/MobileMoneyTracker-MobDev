@@ -387,7 +387,7 @@ export default function PickerModal({
               if (localSelected) onSelect(localSelected);
               handleClose();
             }}
-            style={styles.doneBtn}
+            style={[styles.doneBtn, { paddingBottom: insets.bottom + 15 }]}
           >
             <Text
               style={{ color: activeBlue, fontWeight: "700", fontSize: 16 }}

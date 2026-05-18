@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const useStore = create(
   persist(
@@ -10,33 +10,36 @@ export const useStore = create(
       session: null,
       user: null,
       isGuest: true,
-      
+
       setSession: (session) => {
-        set({ 
-          session, 
+        set({
+          session,
           user: session?.user || null,
-          isGuest: session?.user?.is_anonymous ?? true 
+          isGuest: session?.user?.is_anonymous ?? true,
         });
       },
 
       // --- SETTINGS STATE ---
       isDarkMode: false,
-      currency: '₱',
+      currency: "₱",
       toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
       setCurrency: (cur) => set({ currency: cur }),
 
       // --- DATA STATE ---
       transactions: [],
       setTransactions: (txs) => set({ transactions: txs }),
-      
-      logout: () => set({ session: null, user: null, isGuest: true, transactions: [] }),
+
+      logout: async () => {
+        set({ session: null, user: null, isGuest: true, transactions: [] });
+        await AsyncStorage.removeItem("money-tracker-storage");
+      },
     }),
     {
-      name: 'money-tracker-storage',
+      name: "money-tracker-storage",
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
         state.setHasHydrated(true);
       },
-    }
-  )
+    },
+  ),
 );

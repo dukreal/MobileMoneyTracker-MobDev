@@ -39,18 +39,17 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
-    Alert.alert("Logout", "Are you sure you want to logout and clear local data?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          await supabase.auth.signOut();
-          logout();
-          await WebBrowser.dismissBrowser();
-        },
-      },
-    ]);
+    console.log("Logout button pressed");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.log("Sign out error:", error.message);
+    } catch (e) {
+      console.log("Sign out exception:", e.message);
+    } finally {
+      console.log("Calling logout...");
+      await logout();
+      console.log("Logout done");
+    }
   };
 
   const handleMergeGoogle = async () => {

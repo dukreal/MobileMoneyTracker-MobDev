@@ -23,9 +23,11 @@ import { useStore } from "../store/useStore";
 import { CATEGORIES } from "../constants/Categories";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AddScreen() {
   const { isDarkMode, user, currency } = useStore();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [inputKey, setInputKey] = useState(0);
   const amountRef = useRef(null);
@@ -646,6 +648,7 @@ export default function AddScreen() {
           {
             backgroundColor: isDarkMode ? "#fff" : "#000",
             opacity: !amount || !selectedCat || !selectedSub ? 0.4 : 1,
+            marginBottom: 15,
           },
         ]}
         onPress={handleSave}
@@ -680,7 +683,7 @@ export default function AddScreen() {
             style={{ transform: [{ translateY: sheetTranslateY }] }}
           >
             <View
-              style={[styles.sheetContainer, { backgroundColor: theme.bg }]}
+              style={[styles.sheetContainer, { backgroundColor: theme.bg, paddingBottom: Math.max(36, insets.bottom + 16) }]}
             >
               {/* Handle */}
               <View
@@ -1048,7 +1051,8 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 15,
     marginHorizontal: 20,
-    marginVertical: 15,
+    marginTop: 15,
+    marginBottom: 15,
     alignItems: "center",
   },
 });

@@ -7,13 +7,19 @@ import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import React, { useEffect } from "react";
+import { supabase } from "../src/supabase/supabaseClient";
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 // Prevent splash screen from hiding until store is ready
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { isDarkMode, _hasHydrated } = useStore();
+  const { isDarkMode, _hasHydrated, session, setSession } = useStore();
   const bgColor = isDarkMode ? "#121212" : "#ffffff";
+  const [authReady, setAuthReady] = React.useState(false);
+  const router = require('expo-router').useRouter();
 
   useEffect(() => {
     if (_hasHydrated) {
@@ -21,7 +27,33 @@ export default function RootLayout() {
     }
   }, [_hasHydrated]);
 
-  if (!_hasHydrated) return null;
+  useEffect(() => {
+    // Always verify session with Supabase first
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setAuthReady(true);
+    });
+
+    // Listen for auth state changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      console.log("Layout auth change:", _event, currentSession ? "HAS SESSION" : "NO SESSION");
+      setSession(currentSession);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+  
+  useEffect(() => {
+    if (!authReady || !_hasHydrated) return;
+    if (!session) {
+      router.replace('/login');
+    } else {
+      router.replace('/(tabs)');
+    }
+  }, [session, authReady, _hasHydrated]);
+  
+  // Wait for both store hydration AND Supabase session check
+  if (!_hasHydrated || !authReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -47,6 +79,7 @@ export default function RootLayout() {
           freezeOnBlur: false, 
         }}
       >
+        <Stack.Screen name="login" options={{ animation: "fade" }} />
         <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
         <Stack.Screen name="details" />
         <Stack.Screen name="edit" options={{ presentation: "modal" }} />

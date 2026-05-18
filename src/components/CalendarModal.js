@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   View,
   Text,
@@ -51,6 +52,7 @@ export default function CalendarModal({
   isDarkMode,
   hideDays,
 }) {
+  const insets = useSafeAreaInsets();
   const handleClose = () => {
     Animated.parallel([
       Animated.timing(overlayOpacity, {
@@ -135,7 +137,7 @@ export default function CalendarModal({
           <Pressable
             style={[
               styles.calendarSheet,
-              { backgroundColor: theme.bg, borderColor: theme.border },
+              { backgroundColor: theme.bg, borderColor: theme.border, paddingBottom: insets.bottom + 20 },
             ]}
             onPress={(e) => e.stopPropagation()}
           >
@@ -304,7 +306,9 @@ const styles = StyleSheet.create({
   calendarSheet: {
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    padding: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     borderWidth: 1,
   },
   handle: {

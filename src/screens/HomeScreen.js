@@ -230,9 +230,11 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* Row 2 — Year+Month | Icons */}
+        {/* Row 2 — Month pill (center) + Icons (right) */}
         <View style={styles.headerMainRow}>
-          <View style={{ position: "absolute", left: 0, right: 0, alignItems: "center" }}>
+
+          {/* Center — Month pill (absolutely centered) */}
+          <View style={{ position: "absolute", left: 0, right: 0, alignItems: "center", zIndex: 0 }}>
             <TouchableOpacity
               style={styles.monthDisplayRow}
               onPress={() => setCalendarVisible(true)}
@@ -243,40 +245,28 @@ export default function HomeScreen() {
               <Ionicons name="chevron-down" size={14} color="#4A90E2" />
             </TouchableOpacity>
           </View>
-          {/* Left — Search */}
-        <TouchableOpacity
-          onPress={() => router.push("/search")}
-          style={[
-            styles.circleIconBtn,
-            { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-          ]}
-        >
-          <Ionicons name="search" size={20} color={theme.text} />
-        </TouchableOpacity>
 
-        {/* Center — Month pill (already absolute, no change needed) */}
-
-        {/* Right — Share + Settings */}
-        <View style={styles.headerIcons}>
-          <TouchableOpacity
-            onPress={() => {}}
-            style={[
-              styles.circleIconBtn,
-              { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-            ]}
-          >
-            <Ionicons name="share-outline" size={20} color={theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {}}
-            style={[
-              styles.circleIconBtn,
-              { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-            ]}
-          >
-            <Ionicons name="settings-outline" size={20} color={theme.text} />
-          </TouchableOpacity>
-        </View>
+          {/* Right — Share + Settings (pushed to right with marginLeft: auto) */}
+          <View style={[styles.headerIcons, { marginLeft: "auto", zIndex: 1 }]}>
+            <TouchableOpacity
+              onPress={() => {}}
+              style={[
+                styles.circleIconBtn,
+                { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
+              ]}
+            >
+              <Ionicons name="share-outline" size={20} color={theme.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {}}
+              style={[
+                styles.circleIconBtn,
+                { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
+              ]}
+            >
+              <Ionicons name="settings-outline" size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 

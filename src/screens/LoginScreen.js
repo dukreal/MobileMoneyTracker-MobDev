@@ -20,107 +20,120 @@ export default function LoginScreen() {
   const { setSession } = useStore();
 
   useEffect(() => {
-    // Listen for deep links while app is open
-    const handleDeepLink = async (event) => {
-      console.log("Deep link received:", event.url);
-      const url = event.url;
-
+    // Handle deep link when app comes back from browser
+    const handleDeepLink = async ({ url }) => {
       if (!url) return;
+      console.log("Deep link received:", url);
 
-      const fragment = url.split("#")[1];
-      const query = url.split("?")[1]?.split("#")[0];
+      // Extract code or tokens from URL
+      const urlObj = new URL(url);
+      const code = urlObj.searchParams.get("code") 
+        || new URLSearchParams(url.split("#")[1]).get("code");
+      const access_token = new URLSearchParams(url.split("#")[1]).get("access_token");
+      const refresh_token = new URLSearchParams(url.split("#")[1]).get("refresh_token");
 
-      let params = {};
-      if (fragment) params = Object.fromEntries(new URLSearchParams(fragment));
-      if (!params.access_token && query)
-        params = Object.fromEntries(new URLSearchParams(query));
-
-      console.log("Deep link params keys:", Object.keys(params));
-
-      if (params.access_token && params.refresh_token) {
-        const { data: sd, error: se } = await supabase.auth.setSession({
-          access_token: params.access_token,
-          refresh_token: params.refresh_token,
-        });
-        if (se) {
-          Alert.alert("Login Error", se.message);
-          return;
-        }
-        setSession(sd.session);
+      if (code) {
+        console.log("Got code, exchanging for session...");
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) { Alert.alert("Login Error", error.message); setLoading(false); return; }
+        setSession(data.session);
         setLoading(false);
         return;
       }
 
-      if (params.code) {
-        const { data: ex, error: ee } =
-          await supabase.auth.exchangeCodeForSession(params.code);
-        if (ee) {
-          Alert.alert("Login Error", ee.message);
-          return;
-        }
-        setSession(ex.session);
+      if (access_token && refresh_token) {
+        console.log("Got tokens, setting session...");
+        const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (error) { Alert.alert("Login Error", error.message); setLoading(false); return; }
+        setSession(data.session);
         setLoading(false);
         return;
       }
     };
 
-    // Also check if app was opened via deep link
+    const subscription = Linking.addEventListener("url", handleDeepLink);
+
+    // Check if app was launched via deep link
     Linking.getInitialURL().then((url) => {
-      if (url) {
-        console.log("Initial URL:", url);
+      if (url && url !== "exp://192.168.8.241:8081") {
         handleDeepLink({ url });
       }
     });
 
-    const subscription = Linking.addEventListener("url", handleDeepLink);
     return () => subscription.remove();
   }, []);
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    try {
-      const redirectUri = AuthSession.makeRedirectUri({
-        scheme: "com.moneytracker.app",
-      });
-      console.log("Redirect URI:", redirectUri);
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          skipBrowserRedirect: true,
-          redirectTo: redirectUri,
-        },
-      });
-
-      if (error) throw error;
-
-      console.log("Opening URL:", data.url);
-
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        redirectUri,
-      );
-
-      console.log("Browser result:", JSON.stringify(result));
-
-      // If success, deep link listener above will handle it
-      // If dismiss, check session directly
-      if (result.type === "dismiss" || result.type === "cancel") {
-        const { data: current } = await supabase.auth.getSession();
-        console.log("Session after dismiss:", current?.session ? "FOUND" : "null");
-        if (current?.session) {
-          setSession(current.session);
-        } else {
-          setLoading(false);
-        }
+  // Also listen via Supabase auth state (catches session from _layout.jsx)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session ? "HAS SESSION" : "NO SESSION");
+      if (session) {
+        setSession(session);
+        setLoading(false);
       }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Login Error", error.message);
-      setLoading(false);
+  const handleGoogleLogin = async () => {
+  setLoading(true);
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        skipBrowserRedirect: true,
+        redirectTo: AuthSession.makeRedirectUri({ useProxy: true }),
+      },
+    });
+
+    if (error) throw error;
+
+    console.log("Opening browser...", data.url);
+
+    const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+    console.log("Proxy redirect URI:", redirectUri);
+
+    const result = await WebBrowser.openAuthSessionAsync(
+      data.url,
+      redirectUri,
+    );
+
+    console.log("Auth result:", JSON.stringify(result));
+
+    if (result.type === "success" && result.url) {
+      const url = result.url;
+      const fragment = url.split("#")[1] || "";
+      const query = url.split("?")[1]?.split("#")[0] || "";
+      const params = new URLSearchParams(fragment || query);
+      const code = new URLSearchParams(query).get("code") || params.get("code");
+      const access_token = params.get("access_token");
+      const refresh_token = params.get("refresh_token");
+
+      console.log("Parsed params - code:", code, "access_token:", !!access_token);
+
+      if (code) {
+        const { data: ex, error: ee } = await supabase.auth.exchangeCodeForSession(code);
+        if (ee) { Alert.alert("Error", ee.message); return; }
+        setSession(ex.session);
+      } else if (access_token && refresh_token) {
+        const { data: sd, error: se } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (se) { Alert.alert("Error", se.message); return; }
+        setSession(sd.session);
+      }
+    } else {
+      console.log("Auth cancelled or failed:", result.type);
+      // Check session anyway in case onAuthStateChange already caught it
+      const { data: current } = await supabase.auth.getSession();
+      if (!current?.session) setLoading(false);
     }
-  };
+
+  } catch (error) {
+    console.error("Login error:", error);
+    Alert.alert("Login Error", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleGuestSignIn = async () => {
     setLoading(true);
@@ -142,16 +155,10 @@ export default function LoginScreen() {
         <ActivityIndicator size="large" color="#000" />
       ) : (
         <View style={{ width: "80%" }}>
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleLogin}
-          >
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
             <Text style={styles.googleText}>Sign in with Google</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.guestButton}
-            onPress={handleGuestSignIn}
-          >
+          <TouchableOpacity style={styles.guestButton} onPress={handleGuestSignIn}>
             <Text style={styles.buttonText}>Continue as Guest</Text>
           </TouchableOpacity>
         </View>
@@ -161,28 +168,13 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-  },
+  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" },
   title: { fontSize: 32, fontWeight: "bold", marginBottom: 50 },
   googleButton: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginBottom: 15,
-    alignItems: "center",
+    backgroundColor: "#fff", padding: 15, borderRadius: 12,
+    borderWidth: 1, borderColor: "#ddd", marginBottom: 15, alignItems: "center",
   },
   googleText: { color: "#000", fontWeight: "bold", fontSize: 16 },
-  guestButton: {
-    backgroundColor: "#000",
-    padding: 15,
-    borderRadius: 12,
-    alignItems: "center",
-  },
+  guestButton: { backgroundColor: "#000", padding: 15, borderRadius: 12, alignItems: "center" },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
 });
