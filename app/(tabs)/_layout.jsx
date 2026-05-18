@@ -7,7 +7,11 @@ import { View, TouchableOpacity, StyleSheet } from "react-native";
 
 function AddButton({ onPress, isDarkMode }) {
   return (
-    <TouchableOpacity style={styles.addButtonWrapper} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={styles.addButtonWrapper}
+      onPress={onPress}
+      activeOpacity={0.85}
+    >
       <View style={styles.addButton}>
         <Ionicons name="add" size={32} color="#fff" />
       </View>
@@ -44,7 +48,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: textColor,
         tabBarInactiveTintColor: "gray",
         tabBarStyle: {
-          backgroundColor: bgColor,
+          backgroundColor: isDarkMode ? "#1a1a1a" : "#f5f5f5",
           borderTopColor: isDarkMode ? "#333" : "#eee",
           elevation: 0,
           borderTopWidth: 1,
@@ -76,22 +80,22 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   addButtonWrapper: {
-    top: -20,
+    top: -25,
     justifyContent: "center",
     alignItems: "center",
     flex: 1,
   },
   addButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: "#4A90E2",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#4A90E2",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 8 },  
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 14,
   },
 });

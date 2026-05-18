@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Switch,
   ScrollView,
   Alert,
+  Animated,
+  Pressable,
 } from "react-native";
 import { useStore } from "../store/useStore";
 import { supabase } from "../supabase/supabaseClient";
@@ -15,7 +17,124 @@ import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
 
+// ─── Animated Row Component ──────────────────────────────────────────────────
+function AnimatedRow({ children, delay = 0, style }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(18)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 420,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 420,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[{ opacity, transform: [{ translateY }] }, style]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+// ─── Pressable Row with scale micro-interaction ───────────────────────────────
+function PressableRow({ onPress, children, style }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () =>
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start();
+  const handlePressOut = () =>
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View style={[{ transform: [{ scale }] }, style]}>
+        {children}
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// ─── Stat Pill ────────────────────────────────────────────────────────────────
+function StatPill({ icon, label, value, color, theme }) {
+  return (
+    <View style={[statStyles.pill, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={[statStyles.iconBox, { backgroundColor: color + "15" }]}>
+        <Ionicons name={icon} size={15} color={color} />
+      </View>
+      <Text style={[statStyles.value, { color: theme.text }]} adjustsFontSizeToFit numberOfLines={1}>{value}</Text>
+      <Text style={[statStyles.label, { color: theme.subText }]}>{label}</Text>
+    </View>
+  );
+}
+
+const statStyles = StyleSheet.create({
+  pill: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 4,
+  },
+  iconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  value: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3, flexShrink: 1 },
+  label: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+});
+
+// ─── Section Header ───────────────────────────────────────────────────────────
+function SectionHeader({ label, theme }) {
+  return (
+    <Text style={[styles.sectionLabel, { color: theme.subText }]}>{label}</Text>
+  );
+}
+
+// ─── Setting Row ──────────────────────────────────────────────────────────────
+function SettingItem({ icon, iconBg, iconColor, label, right, borderBottom, theme }) {
+  return (
+    <View
+      style={[
+        styles.settingRow,
+        borderBottom && { borderBottomWidth: 1, borderBottomColor: theme.border },
+      ]}
+    >
+      <View style={styles.settingLeft}>
+        <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
+          <Ionicons name={icon} size={17} color={iconColor} />
+        </View>
+        <Text style={[styles.settingText, { color: theme.text }]}>{label}</Text>
+      </View>
+      <View style={styles.settingRight}>{right}</View>
+    </View>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+
 export default function ProfileScreen() {
+  const router = useRouter();
   const {
     isGuest,
     currency,
@@ -25,31 +144,88 @@ export default function ProfileScreen() {
     logout,
     session,
     setSession,
+    user,
   } = useStore();
 
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
+
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const avatarScale = useRef(new Animated.Value(0.8)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchStats = async () => {
+        let userId = user?.id ?? session?.user?.id;
+        if (!userId) {
+          const { data: { session: authSession } } = await supabase.auth.getSession();
+          userId = authSession?.user?.id;
+        }
+        if (!userId) return;
+        const { data } = await supabase
+          .from("transactions")
+          .select("type, amount")
+          .eq("user_id", userId);
+        if (data) {
+          const income = data.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+          const spent = data.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+          setTotalIncome(income);
+          setTotalSpent(spent);
+        }
+      };
+      fetchStats();
+    }, [user?.id, session?.user?.id])
+  );
+
   const theme = {
-    bg: isDarkMode ? "#121212" : "#ffffff",
-    surface: isDarkMode ? "#1e1e1e" : "#f9f9f9",
-    text: isDarkMode ? "#ffffff" : "#000000",
-    subText: isDarkMode ? "#8e8e93" : "#8e8e93",
-    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
-    accent: "#4A90E2",
-    danger: "#FF6B6B",
-    success: "#2ECC71",
+    bg: isDarkMode ? "#0d0d0d" : "#f7f7f5",
+    surface: isDarkMode ? "#1a1a1a" : "#ffffff",
+    surfaceAlt: isDarkMode ? "#222222" : "#f0efec",
+    text: isDarkMode ? "#f0f0f0" : "#111111",
+    subText: isDarkMode ? "#666666" : "#999999",
+    border: isDarkMode ? "#2a2a2a" : "#e8e8e4",
+    accent: "#3B7DD8",
+    accentAlt: "#1a1a1a",
+    danger: "#E05252",
+    success: "#27AE60",
+    warning: "#F39C12",
   };
 
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(avatarScale, {
+        toValue: 1,
+        tension: 60,
+        friction: 7,
+        delay: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const handleLogout = async () => {
-    console.log("Logout button pressed");
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) console.log("Sign out error:", error.message);
-    } catch (e) {
-      console.log("Sign out exception:", e.message);
-    } finally {
-      console.log("Calling logout...");
-      await logout();
-      console.log("Logout done");
-    }
+    Alert.alert("Sign Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const { error } = await supabase.auth.signOut();
+            if (error) console.log("Sign out error:", error.message);
+          } catch (e) {
+            console.log("Sign out exception:", e.message);
+          } finally {
+            await logout();
+          }
+        },
+      },
+    ]);
   };
 
   const handleMergeGoogle = async () => {
@@ -66,7 +242,7 @@ export default function ProfileScreen() {
           const { data: { session: newSession } } = await supabase.auth.refreshSession();
           if (newSession && !newSession.user.is_anonymous) {
             setSession(newSession);
-            Alert.alert("Success", "Account Linked!");
+            Alert.alert("Linked!", "Your Google account is now connected.");
           }
         }
       }
@@ -75,219 +251,319 @@ export default function ProfileScreen() {
     }
   };
 
+  const initials = isGuest
+    ? "G"
+    : (session?.user?.email?.[0] ?? "?").toUpperCase();
+
   return (
-    <View style={[styles.mainWrapper, { backgroundColor: theme.bg }]}>
-      {/* HEADER - Consistent with Analytics/Add */}
-      <View style={[styles.heroSection, { borderBottomColor: theme.border }]}>
-        <Text style={[styles.heroTitle, { color: theme.text }]}>Profile</Text>
-        
-        <View style={styles.userProfileCard}>
-          <View style={[styles.avatarCircle, { backgroundColor: theme.accent + "20" }]}>
-            <Ionicons name="person" size={40} color={theme.accent} />
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={[styles.userEmail, { color: theme.text }]} numberOfLines={1}>
-              {isGuest ? "Guest User" : session?.user?.email}
-            </Text>
-            <View style={[styles.statusBadge, { backgroundColor: isGuest ? theme.danger + "15" : theme.success + "15" }]}>
-              <Text style={[styles.statusText, { color: isGuest ? theme.danger : theme.success }]}>
-                {isGuest ? "LOCAL STORAGE ONLY" : "CLOUD SYNC ACTIVE"}
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+      {/* ── HEADER ── */}
+      <Animated.View
+        style={[
+          styles.header,
+          { borderBottomColor: theme.border },
+          {
+            opacity: headerAnim,
+            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }],
+          },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Profile</Text>
+      </Animated.View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+      >
+        {/* ── AVATAR CARD ── */}
+        <AnimatedRow delay={60}>
+          <View style={[styles.avatarCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Animated.View style={{ transform: [{ scale: avatarScale }] }}>
+              <View style={[styles.avatar, { backgroundColor: theme.accent + "18" }]}>
+                <Text style={[styles.avatarInitial, { color: theme.accent }]}>{initials}</Text>
+              </View>
+            </Animated.View>
+
+            <View style={styles.avatarInfo}>
+              <Text style={[styles.avatarName, { color: theme.text }]} numberOfLines={1}>
+                {isGuest ? "Guest User" : session?.user?.email}
               </Text>
+              <View style={[styles.badge, { backgroundColor: isGuest ? theme.danger + "12" : theme.success + "12" }]}>
+                <View style={[styles.badgeDot, { backgroundColor: isGuest ? theme.danger : theme.success }]} />
+                <Text style={[styles.badgeText, { color: isGuest ? theme.danger : theme.success }]}>
+                  {isGuest ? "Local only" : "Cloud synced"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.editBtn, { backgroundColor: theme.surfaceAlt }]}>
+              <Ionicons name="pencil" size={14} color={theme.subText} />
             </View>
           </View>
-        </View>
-      </View>
+        </AnimatedRow>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
-        {/* PREFERENCES SECTION */}
-        <Text style={[styles.sectionLabel, { color: theme.subText }]}>Preferences</Text>
-        
-        <View style={[styles.settingsCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          {/* Dark Mode Toggle */}
-          <View style={[styles.settingRow, { borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
-            <View style={styles.settingInfo}>
-              <View style={[styles.iconCircle, { backgroundColor: "#AF52DE20" }]}>
-                <Ionicons name="moon" size={18} color="#AF52DE" />
-              </View>
-              <Text style={[styles.settingText, { color: theme.text }]}>Appearance</Text>
-            </View>
-            <View style={styles.settingAction}>
-               <Text style={[styles.actionLabel, { color: theme.subText }]}>{isDarkMode ? "Dark" : "Light"}</Text>
-               <Switch 
-                 value={isDarkMode} 
-                 onValueChange={toggleDarkMode}
-                 trackColor={{ false: "#ddd", true: theme.accent }}
-               />
-            </View>
+        {/* ── STATS ROW ── */}
+        <AnimatedRow delay={120} style={styles.statsRow}>
+          <StatPill icon="trending-up-outline" label="Income" value={`${currency}${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.success} theme={theme} />
+          <StatPill icon="trending-down-outline" label="Spent" value={`${currency}${totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.danger} theme={theme} />
+          <StatPill icon="wallet-outline" label="Balance" value={`${currency}${Math.abs(totalIncome - totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.accent} theme={theme} />
+        </AnimatedRow>
+
+        {/* ── PREFERENCES ── */}
+        <AnimatedRow delay={180}>
+          <SectionHeader label="Preferences" theme={theme} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <SettingItem
+              icon="moon-outline"
+              iconBg="#7C3AED15"
+              iconColor="#7C3AED"
+              label="Dark Mode"
+              theme={theme}
+              borderBottom
+              right={
+                <Switch
+                  value={isDarkMode}
+                  onValueChange={toggleDarkMode}
+                  trackColor={{ false: theme.border, true: theme.accent }}
+                  thumbColor="#fff"
+                  ios_backgroundColor={theme.border}
+                />
+              }
+            />
+            <SettingItem
+              icon="cash-outline"
+              iconBg={theme.success + "15"}
+              iconColor={theme.success}
+              label="Currency"
+              theme={theme}
+              right={
+                <View style={[styles.segmented, { backgroundColor: theme.surfaceAlt }]}>
+                  {["₱", "$", "€"].map((cur) => (
+                    <TouchableOpacity
+                      key={cur}
+                      onPress={() => setCurrency(cur)}
+                      style={[
+                        styles.segBtn,
+                        currency === cur && { backgroundColor: theme.surface, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+                      ]}
+                    >
+                      <Text style={[styles.segBtnText, { color: currency === cur ? theme.accent : theme.subText }]}>
+                        {cur}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              }
+            />
           </View>
+        </AnimatedRow>
 
-          {/* Currency Selection */}
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <View style={[styles.iconCircle, { backgroundColor: theme.success + "20" }]}>
-                <Ionicons name="cash" size={18} color={theme.success} />
+        {/* ── ACCOUNT ACTIONS ── */}
+        <AnimatedRow delay={300}>
+          <SectionHeader label="Account" theme={theme} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {isGuest && (
+              <PressableRow onPress={handleMergeGoogle}>
+                <View style={[styles.settingRow, { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+                  <View style={styles.settingLeft}>
+                    <View style={[styles.iconCircle, { backgroundColor: "#DB443515" }]}>
+                      <Ionicons name="logo-google" size={17} color="#DB4435" />
+                    </View>
+                    <View>
+                      <Text style={[styles.settingText, { color: theme.text }]}>Link Google</Text>
+                      <Text style={[styles.settingSubText, { color: theme.subText }]}>Save data to cloud</Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={theme.subText} />
+                </View>
+              </PressableRow>
+            )}
+
+            <PressableRow onPress={() => router.push("/helpsupport")}>
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <View style={[styles.iconCircle, { backgroundColor: theme.warning + "15" }]}>
+                    <Ionicons name="help-circle-outline" size={17} color={theme.warning} />
+                  </View>
+                  <View>
+                    <Text style={[styles.settingText, { color: theme.text }]}>Help & Support</Text>
+                    <Text style={[styles.settingSubText, { color: theme.subText }]}>FAQs and contact</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={theme.subText} />
               </View>
-              <Text style={[styles.settingText, { color: theme.text }]}>Currency</Text>
-            </View>
-            <View style={styles.currencyToggle}>
-              {["₱", "$", "€"].map((cur) => (
-                <TouchableOpacity
-                  key={cur}
-                  onPress={() => setCurrency(cur)}
-                  style={[
-                    styles.curBtn,
-                    currency === cur ? { backgroundColor: theme.accent } : { backgroundColor: theme.bg }
-                  ]}
-                >
-                  <Text style={[styles.curBtnText, { color: currency === cur ? "#fff" : theme.subText }]}>
-                    {cur}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            </PressableRow>
           </View>
-        </View>
+        </AnimatedRow>
 
-        {/* ACCOUNT SECTION */}
-        {isGuest && (
-          <>
-            <Text style={[styles.sectionLabel, { color: theme.subText, marginTop: 20 }]}>Security</Text>
-            <TouchableOpacity 
-              style={[styles.linkCard, { backgroundColor: theme.accent }]} 
-              onPress={handleMergeGoogle}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="logo-google" size={20} color="#fff" />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.linkTitle}>Sync to Cloud</Text>
-                <Text style={styles.linkSub}>Link Google to save data permanently</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color="#ffffff80" />
-            </TouchableOpacity>
-          </>
-        )}
+        {/* ── LOGOUT ── */}
+        <AnimatedRow delay={360}>
+          <PressableRow onPress={handleLogout}>
+            <View style={[styles.logoutBtn, { backgroundColor: theme.danger + "0d", borderColor: theme.danger + "25" }]}>
+              <Ionicons name="log-out-outline" size={18} color={theme.danger} />
+              <Text style={[styles.logoutText, { color: theme.danger }]}>Sign Out</Text>
+            </View>
+          </PressableRow>
+        </AnimatedRow>
 
-        {/* LOGOUT BUTTON */}
-        <TouchableOpacity style={[styles.logoutCard, { borderColor: theme.danger + "30" }]} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={theme.danger} />
-          <Text style={[styles.logoutText, { color: theme.danger }]}>Logout & Clear Session</Text>
-        </TouchableOpacity>
-
-        <Text style={[styles.versionText, { color: theme.subText }]}>Version 1.0.0</Text>
+        {/* ── VERSION ── */}
+        <AnimatedRow delay={400}>
+          <Text style={[styles.version, { color: theme.subText }]}>
+            Money Tracker · v1.0.0
+          </Text>
+        </AnimatedRow>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mainWrapper: { flex: 1 },
-  heroSection: {
-    paddingTop: 55,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  root: { flex: 1 },
+
+  // Header
+  header: {
+    paddingTop: 58,
+    paddingBottom: 14,
+    paddingHorizontal: 24,
     borderBottomWidth: 1,
   },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: "900",
-    letterSpacing: 0.5,
-    marginBottom: 20,
-    textAlign: 'center'
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
-  userProfileCard: {
+
+  scroll: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 48,
+    gap: 8,
+  },
+
+  // Avatar Card
+  avatarCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 8,
+    gap: 14,
   },
-  avatarCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     justifyContent: "center",
     alignItems: "center",
   },
-  userInfo: { marginLeft: 15, flex: 1 },
-  userEmail: { fontSize: 17, fontWeight: "700" },
-  statusBadge: {
+  avatarInitial: {
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  avatarInfo: { flex: 1 },
+  avatarName: { fontSize: 15, fontWeight: "700", letterSpacing: -0.2, marginBottom: 5 },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
     alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  statusText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
-  scrollPadding: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 10,
-    marginLeft: 4,
-  },
-  settingsCard: {
     borderRadius: 20,
-    borderWidth: 1,
-    overflow: "hidden",
+    gap: 5,
   },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  settingInfo: { flexDirection: "row", alignItems: "center", gap: 12 },
-  iconCircle: {
-    width: 34,
-    height: 34,
+  badgeDot: { width: 5, height: 5, borderRadius: 3 },
+  badgeText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.3 },
+  editBtn: {
+    width: 30,
+    height: 30,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  settingText: { fontSize: 15, fontWeight: "600" },
-  settingAction: { flexDirection: "row", alignItems: "center", gap: 10 },
-  actionLabel: { fontSize: 13, fontWeight: "500" },
-  currencyToggle: {
+
+  // Stats
+  statsRow: {
     flexDirection: "row",
-    backgroundColor: "rgba(0,0,0,0.05)",
-    padding: 4,
-    borderRadius: 12,
-    gap: 4,
+    gap: 8,
+    marginBottom: 8,
   },
-  curBtn: {
-    width: 36,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
+
+  // Section label
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginTop: 14,
+    marginBottom: 8,
+    marginLeft: 2,
   },
-  curBtnText: { fontSize: 14, fontWeight: "800" },
-  linkCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 18,
-    borderRadius: 20,
-    marginTop: 5,
-  },
-  linkTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
-  linkSub: { color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 1 },
-  logoutCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 18,
-    borderRadius: 20,
+
+  // Card
+  card: {
+    borderRadius: 18,
     borderWidth: 1,
-    marginTop: 30,
-    gap: 10,
-    backgroundColor: "rgba(255,107,107,0.05)",
+    overflow: "hidden",
+    marginBottom: 4,
   },
-  logoutText: { fontSize: 15, fontWeight: "700" },
-  versionText: {
+
+  // Setting Row
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  settingLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  settingRight: {},
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  settingText: { fontSize: 14, fontWeight: "600" },
+  settingSubText: { fontSize: 11, fontWeight: "500", marginTop: 1 },
+
+  // Segmented Control
+  segmented: {
+    flexDirection: "row",
+    padding: 3,
+    borderRadius: 10,
+    gap: 2,
+  },
+  segBtn: {
+    width: 34,
+    height: 28,
+    borderRadius: 7,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  segBtnText: { fontSize: 13, fontWeight: "800" },
+
+  // Logout
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 10,
+  },
+  logoutText: { fontSize: 14, fontWeight: "700" },
+
+  // Version
+  version: {
     textAlign: "center",
     fontSize: 11,
-    marginTop: 30,
     fontWeight: "600",
-    opacity: 0.6,
+    marginTop: 20,
+    letterSpacing: 0.3,
   },
 });
