@@ -26,8 +26,6 @@ import {
   eachDayOfInterval,
   isSameDay,
   startOfDay,
-  subDays,
-  isBefore,
 } from "date-fns";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -55,31 +53,8 @@ function TransactionItem({
   theme,
   currency,
   isGuest,
-  isSearchOpen,
 }) {
   const isExpense = item.type === "expense";
-  const sevenDaysAgo = subDays(new Date(), 7);
-  if (isGuest && isBefore(new Date(item.created_at), sevenDaysAgo) && !isSearchOpen) {
-    return (
-      <View
-        style={[
-          styles.txCard,
-          {
-            backgroundColor: theme.card,
-            borderColor: theme.border,
-            borderStyle: "dashed",
-          },
-        ]}
-      >
-        <Ionicons name="lock-closed" size={18} color={theme.subText} />
-        <Text
-          style={{ marginLeft: 10, color: theme.subText, fontWeight: "bold" }}
-        >
-          Login for full history
-        </Text>
-      </View>
-    );
-  }
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -387,7 +362,6 @@ export default function HomeScreen() {
             theme={theme}
             currency={currency}
             isGuest={isGuest}
-            isSearchOpen={false}
           />
         )}
       />

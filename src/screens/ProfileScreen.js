@@ -91,7 +91,7 @@ export default function ProfileScreen() {
             </Text>
             <View style={[styles.statusBadge, { backgroundColor: isGuest ? theme.danger + "15" : theme.success + "15" }]}>
               <Text style={[styles.statusText, { color: isGuest ? theme.danger : theme.success }]}>
-                {isGuest ? "LIMIT: 7 DAYS HISTORY" : "CLOUD SYNC ACTIVE"}
+                {isGuest ? "LOCAL STORAGE ONLY" : "CLOUD SYNC ACTIVE"}
               </Text>
             </View>
           </View>
