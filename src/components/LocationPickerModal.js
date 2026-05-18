@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MAP_HTML = (lat, lng) => `
 <!DOCTYPE html>
@@ -90,6 +91,7 @@ export default function LocationPickerModal({
   onConfirm,
   isDarkMode,
 }) {
+  const insets = useSafeAreaInsets();
   const [initialCoords, setInitialCoords] = useState(null);
   const [pinCoords, setPinCoords] = useState(null);
   const [placeName, setPlaceName] = useState("");
@@ -530,7 +532,7 @@ export default function LocationPickerModal({
         <View
           style={[
             styles.bottomBar,
-            { backgroundColor: theme.bg, borderTopColor: theme.inputBorder },
+            { backgroundColor: theme.bg, borderTopColor: theme.inputBorder, paddingBottom: insets.bottom + 16 },
           ]}
         >
           <View
@@ -651,7 +653,6 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 14 },
   bottomBar: {
     padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 36 : 20,
     borderTopWidth: 1,
     gap: 12,
   },
