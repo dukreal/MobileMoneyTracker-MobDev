@@ -363,10 +363,6 @@ export default function ProfileScreen() {
                 </Text>
               </View>
             </View>
-
-            <View style={[styles.editBtn, { backgroundColor: theme.surfaceAlt }]}>
-              <Ionicons name="pencil" size={14} color={theme.subText} />
-            </View>
           </View>
         </AnimatedRow>
 
