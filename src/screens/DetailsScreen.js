@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,10 @@ import {
   Modal,
   Linking,
   Alert,
-  Share,
   Pressable,
+  Animated,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
@@ -27,6 +27,18 @@ export default function DetailsScreen({ item }) {
   const [fullImage, setFullImage] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const receiptRef = useRef(null);
+  const insets = useSafeAreaInsets();
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const contentAnim = useRef(new Animated.Value(0)).current;
+  const barAnim = useRef(new Animated.Value(40)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(headerAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(contentAnim, { toValue: 1, duration: 420, delay: 80, useNativeDriver: true }),
+      Animated.spring(barAnim, { toValue: 0, damping: 20, delay: 150, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   const isIncome = item.type === "income";
   const accentColor = isIncome ? "#2ECC71" : "#FF6B6B";
@@ -87,56 +99,37 @@ export default function DetailsScreen({ item }) {
     }
   };
 
-  const handleShareLink = async () => {
-    try {
-      const link = `https://yrqvncdwnzuruohgmfup.supabase.co/functions/v1/share-transaction?id=${item.id}`;
-      await Share.share({ message: link });
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
   const handleShare = () => {
-    Alert.alert("Share Transaction", "Choose a format", [
-      { text: "Share as Image", onPress: handleShareImage },
-      { text: "Share as Link", onPress: handleShareLink },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    handleShareImage();
   };
 
   return (
-    <SafeAreaView style={[styles.mainWrapper, { backgroundColor: theme.bg }]}>
+    <View style={[styles.mainWrapper, { backgroundColor: theme.bg }]}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
 
       {/* HEADER */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={[
-            styles.circleIconBtn,
-            { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-          ]}
-        >
-          <Ionicons name="chevron-back" size={20} color={theme.text} />
+      <Animated.View
+        style={[
+          styles.header,
+          { borderBottomColor: theme.border, paddingTop: insets.top + 8 },
+          {
+            opacity: headerAnim,
+            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }],
+          },
+        ]}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={22} color={theme.text} />
         </TouchableOpacity>
-
         <Text style={[styles.headerTitle, { color: theme.text }]}>Details</Text>
-
-        <TouchableOpacity
-          onPress={handleShare}
-          style={[
-            styles.circleIconBtn,
-            { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-          ]}
-        >
-          <Ionicons name="share-outline" size={20} color={theme.text} />
-        </TouchableOpacity>
-      </View>
+        <View style={{ width: 36 }} />
+      </Animated.View>
 
       {/* SCROLLABLE CONTENT */}
-      <ScrollView
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 }}
+        style={{ opacity: contentAnim }}
       >
         {/* HERO CARD */}
         <View style={[styles.heroCard, { backgroundColor: theme.card }]}>
@@ -275,10 +268,20 @@ export default function DetailsScreen({ item }) {
             </ScrollView>
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* FIXED BOTTOM ACTION BAR */}
-      <View style={[styles.actionBar, { backgroundColor: theme.bg, borderTopColor: theme.border }]}>
+      <Animated.View
+        style={[
+          styles.actionBar,
+          {
+            backgroundColor: theme.bg,
+            borderTopColor: theme.border,
+            paddingBottom: insets.bottom + 12,
+            transform: [{ translateY: barAnim }],
+          },
+        ]}
+      >
         {item.latitude && (
           <TouchableOpacity style={styles.actionBtn} onPress={openInMaps}>
             <View style={[styles.actionIcon, { backgroundColor: "#0081db22" }]}>
@@ -295,7 +298,7 @@ export default function DetailsScreen({ item }) {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionBtn}
-          onPress={() => router.back({ pathname: "/edit", params: { item: JSON.stringify(item) } })}
+          onPress={() => router.push({ pathname: "/edit", params: { item: JSON.stringify(item) } })}
         >
           <View style={[styles.actionIcon, { backgroundColor: "#f39c1222" }]}>
             <Ionicons name="create" size={22} color="#f39c12" />
@@ -308,7 +311,7 @@ export default function DetailsScreen({ item }) {
           </View>
           <Text style={[styles.actionLabel, { color: theme.subText }]}>Delete</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* FULL IMAGE MODAL */}
       <Modal visible={!!fullImage} transparent animationType="fade">
@@ -323,50 +326,65 @@ export default function DetailsScreen({ item }) {
       {/* HIDDEN RECEIPT FOR SCREENSHOT */}
       <View style={{ position: "absolute", left: -9999, top: -9999 }}>
         <ViewShot ref={receiptRef} options={{ format: "png", quality: 1 }}>
-          <View style={{ backgroundColor: "#fff", padding: 32, width: 340, borderRadius: 24 }}>
-            <Text style={{ textAlign: "center", fontSize: 13, fontWeight: "700", color: "#999", letterSpacing: 1.5, marginBottom: 20 }}>
-              TRANSACTION RECEIPT
-            </Text>
-            <View style={{ alignItems: "center", marginBottom: 24 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: accentColor, letterSpacing: 1.5, marginBottom: 8 }}>
-                {isIncome ? "↑ INCOME" : "↓ EXPENSE"}
+          <View style={{ backgroundColor: theme.bg, padding: 32, width: 340, borderRadius: 24 }}>
+
+            {/* Top accent bar */}
+            <View style={{ backgroundColor: accentColor, borderRadius: 12, paddingVertical: 10, alignItems: "center", marginBottom: 24 }}>
+              <Text style={{ fontSize: 11, fontWeight: "800", color: "#fff", letterSpacing: 2 }}>
+                TRANSACTION RECEIPT
               </Text>
-              <Text style={{ fontSize: 44, fontWeight: "900", color: "#000", letterSpacing: -1 }}>
+            </View>
+
+            {/* Amount block */}
+            <View style={{ alignItems: "center", marginBottom: 24 }}>
+              <View style={{ backgroundColor: accentColor + "18", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, marginBottom: 10 }}>
+                <Text style={{ fontSize: 11, fontWeight: "800", color: accentColor, letterSpacing: 1.5 }}>
+                  {isIncome ? "↑ INCOME" : "↓ EXPENSE"}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 44, fontWeight: "900", color: theme.text, letterSpacing: -1 }}>
                 {isIncome ? "+" : "-"}{currency}
                 {item.amount ? Number(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "0.00"}
               </Text>
+              <Text style={{ fontSize: 13, fontWeight: "500", color: theme.subText, marginTop: 4 }}>
+                {item.parent_category}  ›  {item.sub_category}
+              </Text>
             </View>
-            <View style={{ borderTopWidth: 1, borderColor: "#eee", paddingTop: 20, gap: 14 }}>
+
+            {/* Details rows */}
+            <View style={{ borderTopWidth: 1, borderColor: theme.border, paddingTop: 20, gap: 14 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: "#999", fontSize: 13 }}>Category</Text>
-                <Text style={{ color: "#000", fontSize: 13, fontWeight: "600" }}>{item.parent_category} › {item.sub_category}</Text>
+                <Text style={{ color: theme.subText, fontSize: 13 }}>Date</Text>
+                <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600" }}>
+                  {item.created_at ? format(new Date(item.created_at), "MMM d, yyyy") : "N/A"}
+                </Text>
               </View>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: "#999", fontSize: 13 }}>Date</Text>
-                <Text style={{ color: "#000", fontSize: 13, fontWeight: "600" }}>{item.created_at ? format(new Date(item.created_at), "MMM d, yyyy") : "N/A"}</Text>
-              </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: "#999", fontSize: 13 }}>Time</Text>
-                <Text style={{ color: "#000", fontSize: 13, fontWeight: "600" }}>{item.created_at ? format(new Date(item.created_at), "h:mm a") : "N/A"}</Text>
+                <Text style={{ color: theme.subText, fontSize: 13 }}>Time</Text>
+                <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600" }}>
+                  {item.created_at ? format(new Date(item.created_at), "h:mm a") : "N/A"}
+                </Text>
               </View>
               {item.notes ? (
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ color: "#999", fontSize: 13 }}>Note</Text>
-                  <Text style={{ color: "#000", fontSize: 13, fontWeight: "600", maxWidth: "60%", textAlign: "right" }}>{item.notes}</Text>
+                  <Text style={{ color: theme.subText, fontSize: 13 }}>Note</Text>
+                  <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600", maxWidth: "60%", textAlign: "right" }}>{item.notes}</Text>
                 </View>
               ) : null}
               {item.latitude ? (
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ color: "#999", fontSize: 13 }}>Location</Text>
-                  <Text style={{ color: "#000", fontSize: 13, fontWeight: "600" }}>
+                  <Text style={{ color: theme.subText, fontSize: 13 }}>Location</Text>
+                  <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600" }}>
                     {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
                   </Text>
                 </View>
               ) : null}
             </View>
+
+            {/* Attachments */}
             {item.image_urls && item.image_urls.length > 0 && (
               <View style={{ marginTop: 16 }}>
-                <Text style={{ color: "#999", fontSize: 13, marginBottom: 10 }}>Attachments</Text>
+                <Text style={{ color: theme.subText, fontSize: 13, marginBottom: 10 }}>Attachments</Text>
                 <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
                   {item.image_urls.map((url, index) => (
                     <Image key={index} source={{ uri: url }} style={{ width: 80, height: 80, borderRadius: 10 }} />
@@ -374,13 +392,18 @@ export default function DetailsScreen({ item }) {
                 </View>
               </View>
             )}
-            <Text style={{ textAlign: "center", color: "#ccc", fontSize: 11, marginTop: 24 }}>
-              Generated by Montra
-            </Text>
+
+            {/* Footer */}
+            <View style={{ borderTopWidth: 1, borderColor: theme.border, marginTop: 20, paddingTop: 14, alignItems: "center" }}>
+              <Text style={{ color: accentColor, fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>
+                MONTRA
+              </Text>
+            </View>
+
           </View>
         </ViewShot>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -393,18 +416,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
   },
-  circleIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: { fontSize: 17, fontWeight: "800", letterSpacing: 0.3 },
+  headerTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.5 },
 
   // HERO CARD
   heroCard: {
@@ -462,13 +484,13 @@ const styles = StyleSheet.create({
   actionBar: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 12,
-    paddingBottom: 24,
+    paddingTop: 14,
+    paddingHorizontal: 8,
     borderTopWidth: 1,
   },
   actionBtn: { alignItems: "center", gap: 6, flex: 1 },
-  actionIcon: { width: 52, height: 52, borderRadius: 16, justifyContent: "center", alignItems: "center" },
-  actionLabel: { fontSize: 12, fontWeight: "600" },
+  actionIcon: { width: 56, height: 56, borderRadius: 18, justifyContent: "center", alignItems: "center" },
+  actionLabel: { fontSize: 11, fontWeight: "600" },
 
   // MODAL
   modalBg: { flex: 1, backgroundColor: "rgba(0,0,0,0.96)", justifyContent: "center", alignItems: "center" },
