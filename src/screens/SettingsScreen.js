@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useStore } from "../store/useStore";
+import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 
 // ─── Animated Row ─────────────────────────────────────────────────────────────
 function AnimatedRow({ children, delay = 0, style }) {
@@ -44,12 +45,12 @@ function PressableRow({ onPress, children }) {
 }
 
 // ─── Section Header ───────────────────────────────────────────────────────────
-function SectionHeader({ label, theme }) {
-  return <Text style={[styles.sectionLabel, { color: theme.subText }]}>{label}</Text>;
+function SectionHeader({ label, theme, sz = 1 }) {
+  return <Text style={[styles.sectionLabel, { color: theme.subText, fontSize: 11 * sz }]}>{label}</Text>;
 }
 
 // ─── Setting Row ──────────────────────────────────────────────────────────────
-function SettingRow({ icon, iconBg, iconColor, label, subLabel, right, borderBottom, theme }) {
+function SettingRow({ icon, iconBg, iconColor, label, subLabel, right, borderBottom, theme, sz = 1 }) {
   return (
     <View style={[styles.settingRow, borderBottom && { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
       <View style={styles.settingLeft}>
@@ -57,8 +58,8 @@ function SettingRow({ icon, iconBg, iconColor, label, subLabel, right, borderBot
           <Ionicons name={icon} size={17} color={iconColor} />
         </View>
         <View>
-          <Text style={[styles.settingText, { color: theme.text }]}>{label}</Text>
-          {subLabel && <Text style={[styles.settingSubText, { color: theme.subText }]}>{subLabel}</Text>}
+          <Text style={[styles.settingText, { color: theme.text, fontSize: 14 * sz }]}>{label}</Text>
+          {subLabel && <Text style={[styles.settingSubText, { color: theme.subText, fontSize: 11 * sz }]}>{subLabel}</Text>}
         </View>
       </View>
       <View>{right}</View>
@@ -105,17 +106,9 @@ export default function SettingsScreen() {
   }, []);
 
   const accentColor = COLOR_THEMES.find(t => t.key === colorTheme)?.color ?? "#3B7DD8";
+  const sz = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
 
-  const theme = {
-    bg: isDarkMode ? "#0d0d0d" : "#f7f7f5",
-    surface: isDarkMode ? "#1a1a1a" : "#ffffff",
-    surfaceAlt: isDarkMode ? "#222222" : "#f0efec",
-    text: isDarkMode ? "#f0f0f0" : "#111111",
-    subText: isDarkMode ? "#666666" : "#999999",
-    border: isDarkMode ? "#2a2a2a" : "#e8e8e4",
-    accent: accentColor,
-    success: "#27AE60",
-  };
+  const theme = buildTheme(isDarkMode, colorTheme);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
@@ -133,7 +126,7 @@ export default function SettingsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: theme.text, fontSize: 18 * sz }]}>{t(language, "settings")}</Text>
         <View style={{ width: 36 }} />
       </Animated.View>
 
@@ -141,7 +134,7 @@ export default function SettingsScreen() {
 
         {/* ── APPEARANCE ── */}
         <AnimatedRow delay={60}>
-          <SectionHeader label="Appearance" theme={theme} />
+          <SectionHeader label={t(language, "appearance")} theme={theme} sz={sz} />
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
 
             {/* Dark / Light Mode */}
@@ -149,9 +142,10 @@ export default function SettingsScreen() {
               icon={isDarkMode ? "moon" : "sunny"}
               iconBg={isDarkMode ? "#7C3AED15" : "#F39C1215"}
               iconColor={isDarkMode ? "#7C3AED" : "#F39C12"}
-              label="Theme Mode"
-              subLabel={isDarkMode ? "Dark" : "Light"}
+              label={t(language, "themeMode")}
+              subLabel={isDarkMode ? t(language, "dark") : t(language, "light")}
               theme={theme}
+              sz={sz}
               borderBottom
               right={
                 <TouchableOpacity
@@ -173,8 +167,9 @@ export default function SettingsScreen() {
               icon="color-palette-outline"
               iconBg={accentColor + "15"}
               iconColor={accentColor}
-              label="Color Theme"
+              label={t(language, "colorTheme")}
               theme={theme}
+              sz={sz}
               borderBottom
               right={
                 <View style={styles.colorRow}>
@@ -202,9 +197,10 @@ export default function SettingsScreen() {
               icon="text-outline"
               iconBg="#5AC8FA15"
               iconColor="#5AC8FA"
-              label="Text Size"
+              label={t(language, "textSize")}
               subLabel={textSize.charAt(0).toUpperCase() + textSize.slice(1)}
               theme={theme}
+              sz={sz}
               right={
                 <View style={[styles.segmented, { backgroundColor: theme.surfaceAlt }]}>
                   {TEXT_SIZES.map((s) => (
@@ -229,7 +225,7 @@ export default function SettingsScreen() {
 
         {/* ── LANGUAGE ── */}
         <AnimatedRow delay={120}>
-          <SectionHeader label="Language" theme={theme} />
+          <SectionHeader label={t(language, "language")} theme={theme} sz={sz} />
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {LANGUAGES.map((lang, i) => (
               <PressableRow key={lang.key} onPress={() => setLanguage(lang.key)}>
@@ -241,7 +237,7 @@ export default function SettingsScreen() {
                     <View style={[styles.iconCircle, { backgroundColor: theme.surfaceAlt }]}>
                       <Text style={{ fontSize: 16 }}>{lang.flag}</Text>
                     </View>
-                    <Text style={[styles.settingText, { color: theme.text }]}>{lang.label}</Text>
+                    <Text style={[styles.settingText, { color: theme.text, fontSize: 14 * sz }]}>{lang.label}</Text>
                   </View>
                   {language === lang.key && (
                     <Ionicons name="checkmark-circle" size={20} color={theme.accent} />
