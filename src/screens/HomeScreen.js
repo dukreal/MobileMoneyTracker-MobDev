@@ -62,7 +62,7 @@ function TransactionItem({
       activeOpacity={0.7}
       style={[
         styles.txCard,
-        { backgroundColor: theme.card, borderColor: theme.border },
+        { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
       onPress={() => router.push({ pathname: "/details", params: { item: JSON.stringify(item) } })}
     >
@@ -297,7 +297,7 @@ export default function HomeScreen() {
       </View>
 
       {/* SUMMARY */}
-      <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
+      <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
        <View style={styles.summaryCol}>
           <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>{t(language, "income")}</Text>
           <Text style={[styles.summaryVal, { color: "#2ECC71", fontSize: 15 * ts }]}>

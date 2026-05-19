@@ -363,7 +363,7 @@ export default function ChartsScreen() {
       </View>
 
       {/* SUMMARY ROW */}
-      <View style={[styles.summaryRow, { backgroundColor: theme.surface }]}>
+      <View style={[styles.summaryRow, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
         <View style={styles.summaryCol}>
           <Text style={styles.summaryLabel}>{t(language, "income")}</Text>
           <Text
@@ -408,7 +408,7 @@ export default function ChartsScreen() {
         contentContainerStyle={{ paddingTop: 0 }}
       >
         {/* PIE CHART SECTION */}
-        <View style={[styles.chartCard, { backgroundColor: theme.surface }]}>
+        <View style={[styles.chartCard, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
           {/* Chart Header */}
           <View style={styles.chartHeaderRow}>
             <View>
@@ -650,6 +650,8 @@ export default function ChartsScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 paddingVertical: 30,
+                borderWidth: 1,
+                borderColor: theme.border,
               },
             ]}
           >
