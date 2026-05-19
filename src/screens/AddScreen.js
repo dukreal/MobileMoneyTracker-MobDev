@@ -492,6 +492,7 @@ export default function AddScreen() {
       </ScrollView>
 
       {/* ── SAVE BUTTON ── */}
+      <View style={{ justifyContent: "flex-end", paddingBottom: Math.max(0, insets.bottom - 15) }}> 
       <AnimatedRow delay={260}>
         <PressableRow
           onPress={handleSave}
@@ -500,7 +501,7 @@ export default function AddScreen() {
             {
               backgroundColor: isDarkMode ? "#fff" : "#000",
               marginHorizontal: 20,
-              marginBottom: Math.max(16, insets.bottom),
+              marginBottom: 0,
               opacity: !amount || !selectedCat || !selectedSub ? 0.4 : 1,
             },
           ]}
@@ -516,6 +517,7 @@ export default function AddScreen() {
           </View>
         </PressableRow>
       </AnimatedRow>
+      </View>
 
       {/* ── CATEGORY BOTTOM SHEET ── */}
       <Modal visible={catSheetVisible} transparent animationType="none" onRequestClose={closeSheet}>
@@ -622,7 +624,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 16,
     gap: 8,
   },
 
@@ -757,9 +758,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     padding: 14,
+    justifyContent: "space-between",
   },
-  previewImage: { width: 70, height: 70, borderRadius: 10 },
-  removeImg: { position: "absolute", top: -5, right: -5 },
+  previewImage: { width: "100%", aspectRatio: 1, borderRadius: 10 },
+  removeImg: { position: "absolute", top: -8, left: -8 },
 
   // ── Save Button ──
   saveButton: {

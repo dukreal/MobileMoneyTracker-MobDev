@@ -82,7 +82,7 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   addButtonWrapper: {
-    top: -25,
+    top: -20,
     justifyContent: "center",
     alignItems: "center",
     flex: 1,
