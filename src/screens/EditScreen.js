@@ -13,9 +13,10 @@ import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { initDB, updateLocalTransaction, enqueuePendingOp } from "../db/localDB";
 
 export default function EditScreen({ item }) {
-  const { isDarkMode, currency } = useStore();
+  const { isDarkMode, currency, isOnline, refreshPendingCount } = useStore();
   const [loading, setLoading] = useState(false);
 
   const [amount, setAmount] = useState(item.amount.toString());
@@ -53,19 +54,30 @@ export default function EditScreen({ item }) {
     }
 
     try {
-      const { error } = await supabase
-        .from("transactions")
-        .update(updateData)
-        .eq("id", item.id);
+      await initDB();
 
-      if (error) throw error;
+      if (isOnline) {
+        const { error } = await supabase
+          .from("transactions")
+          .update(updateData)
+          .eq("id", item.id);
+        if (error) throw error;
+      } else {
+        // Save locally and queue for sync
+        await updateLocalTransaction(item.id, {
+          ...updateData,
+          original_amount: item.amount,
+          original_notes: item.notes,
+        });
+        await enqueuePendingOp(item.id, "UPDATE", { id: item.id, ...updateData });
+        await refreshPendingCount();
+      }
 
-      Alert.alert("Success", "Transaction updated!", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(tabs)"),
-        },
-      ]);
+      Alert.alert(
+        isOnline ? "Success" : "Saved Offline",
+        isOnline ? "Transaction updated!" : "Saved locally. Will sync when back online.",
+        [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
+      );
     } catch (err) {
       Alert.alert("Update Failed", err.message);
     } finally {

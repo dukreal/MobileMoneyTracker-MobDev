@@ -17,6 +17,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { useStore } from "../store/useStore";
+import { initDB, deleteLocalTransaction, enqueuePendingOp } from "../db/localDB";
 import { buildTheme } from "../constants/settings";
 import { supabase } from "../supabase/supabaseClient";
 import ViewShot, { captureRef } from "react-native-view-shot";
@@ -24,7 +25,7 @@ import * as Sharing from "expo-sharing";
 import { router } from "expo-router";
 
 export default function DetailsScreen({ item }) {
-  const { isDarkMode, currency, colorTheme } = useStore();
+  const { isDarkMode, currency, colorTheme, isOnline, refreshPendingCount } = useStore();
   const [fullImage, setFullImage] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const receiptRef = useRef(null);
@@ -56,15 +57,26 @@ export default function DetailsScreen({ item }) {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            const { error } = await supabase
-              .from("transactions")
-              .delete()
-              .eq("id", item.id);
-            if (error) {
-              Alert.alert("Error", "Could not delete: " + error.message);
+            await initDB();
+            if (isOnline) {
+              const { error } = await supabase
+                .from("transactions")
+                .delete()
+                .eq("id", item.id);
+              if (error) {
+                Alert.alert("Error", "Could not delete: " + error.message);
+                return;
+              }
             } else {
-              router.back();
+              await deleteLocalTransaction(item.id);
+              await enqueuePendingOp(item.id, "DELETE", { id: item.id });
+              await refreshPendingCount();
             }
+            Alert.alert(
+              isOnline ? "Deleted" : "Deleted Offline",
+              isOnline ? "Transaction removed." : "Removed locally. Will sync when back online.",
+              [{ text: "OK", onPress: () => router.back() }]
+            );
           },
         },
       ],

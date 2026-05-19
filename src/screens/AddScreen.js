@@ -25,6 +25,9 @@ import { useStore } from "../store/useStore";
 import { CATEGORIES } from "../constants/Categories";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, router } from "expo-router";
+import { initDB, insertLocalTransaction, enqueuePendingOp } from "../db/localDB";
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // ─── Animated Row ─────────────────────────────────────────────────────────────
@@ -65,7 +68,7 @@ function SectionHeader({ label, theme }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function AddScreen() {
-  const { isDarkMode, user, currency, colorTheme, textSize, language } = useStore();
+  const { isDarkMode, user, currency, colorTheme, textSize, language, isOnline, refreshPendingCount } = useStore();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [inputKey, setInputKey] = useState(0);
@@ -85,6 +88,7 @@ export default function AddScreen() {
   const headerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(headerAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    initDB();
   }, []);
 
   const openSheet = () => {
@@ -208,21 +212,41 @@ export default function AddScreen() {
         userId = anonData?.user?.id;
       }
       if (!userId) return Alert.alert("Error", "Could not start a session.");
-      const imageUrls = await uploadImagesToStorage(userId);
-      const { error } = await supabase.from("transactions").insert([{
+      const payload = {
         user_id: userId,
         amount: parsedAmount,
         type,
         parent_category: selectedCat.name,
         sub_category: selectedSub,
         notes,
-        image_urls: imageUrls,
+        image_urls: [],
         latitude: location?.latitude || null,
         longitude: location?.longitude || null,
-      }]);
-      if (error) throw error;
+        created_at: new Date().toISOString(),
+      };
+
+      await initDB();
+
+      if (isOnline) {
+        const imageUrls = await uploadImagesToStorage(userId);
+        const { error } = await supabase.from("transactions").insert([{
+          ...payload,
+          image_urls: imageUrls,
+        }]);
+        if (error) throw error;
+      } else {
+        const localId = uuidv4();
+        await insertLocalTransaction({ id: localId, ...payload, is_local: true });
+        await enqueuePendingOp(localId, "INSERT", { id: localId, ...payload });
+        await refreshPendingCount();
+      }
+
       resetFields();
-      router.replace("/(tabs)");
+      Alert.alert(
+        isOnline ? "Saved!" : "Saved Offline",
+        isOnline ? "Transaction added." : "Saved locally. Will sync when back online.",
+        [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
+      );
     } catch (err) {
       console.log("Save error:", JSON.stringify(err));
       Alert.alert("Save Failed", err.message);
@@ -403,12 +427,14 @@ export default function AddScreen() {
             <View style={[styles.locationBtnRow, { borderBottomWidth: location ? 1 : 0, borderBottomColor: theme.border }]}>
               <TouchableOpacity
                 onPress={handleUseCurrentLocation}
+                disabled={!isOnline}
                 style={[
                   styles.locationOptionBtn,
                   {
                     backgroundColor: locationOption === "current" ? theme.accent + "12" : "transparent",
                     borderRightWidth: 1,
                     borderRightColor: theme.border,
+                    opacity: !isOnline ? 0.4 : 1,
                   },
                 ]}
               >
@@ -424,9 +450,13 @@ export default function AddScreen() {
 
               <TouchableOpacity
                 onPress={() => { setLocationOption("map"); handleGetLocation(); }}
+                disabled={!isOnline}
                 style={[
                   styles.locationOptionBtn,
-                  { backgroundColor: locationOption === "map" ? theme.accent + "12" : "transparent" },
+                  {
+                    backgroundColor: locationOption === "map" ? theme.accent + "12" : "transparent",
+                    opacity: !isOnline ? 0.4 : 1,
+                  },
                 ]}
               >
                 <Ionicons name="map" size={16} color={locationOption === "map" ? theme.accent : theme.placeholder} />

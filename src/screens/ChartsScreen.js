@@ -10,6 +10,7 @@ import {
 import { PieChart } from "react-native-gifted-charts";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
+import { initDB, getLocalTransactions } from "../db/localDB";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -52,7 +53,7 @@ export default function ChartsScreen() {
   const [selectedWeek, setSelectedWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const { isGuest, isDarkMode, currency, user, colorTheme, textSize, language } = useStore();
+  const { isGuest, isDarkMode, currency, user, colorTheme, textSize, language, isOnline } = useStore();
 
   const theme = {
     ...buildTheme(isDarkMode, colorTheme),
@@ -72,18 +73,30 @@ export default function ChartsScreen() {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("user_id", userId);
-      if (error) throw error;
-      setTransactions(data || []);
+      await initDB();
+      if (isOnline) {
+        const { data, error } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("user_id", userId);
+        if (error) throw error;
+        setTransactions(data || []);
+      } else {
+        const local = await getLocalTransactions(userId);
+        setTransactions(local);
+      }
     } catch {
-      setTransactions([]);
+      const userId = user?.id;
+      if (userId) {
+        const local = await getLocalTransactions(userId);
+        setTransactions(local);
+      } else {
+        setTransactions([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, isOnline]);
 
   useFocusEffect(
     useCallback(() => {

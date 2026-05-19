@@ -31,6 +31,7 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import PickerModal from "../components/PickerModal";
+import { initDB, getLocalTransactions, cacheTransactions } from "../db/localDB";
 import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 
 const MONTHS = [
@@ -110,7 +111,7 @@ function TransactionItem({
 
 // --- 3. MAIN HOME SCREEN ---
 export default function HomeScreen() {
-  const { currency, isGuest, isDarkMode, colorTheme, textSize, language, user, session } = useStore();
+  const { currency, isGuest, isDarkMode, colorTheme, textSize, language, user, session, isOnline } = useStore();
   const theme = buildTheme(isDarkMode, colorTheme);
   const ts = TEXT_SIZE_MULTIPLIER[textSize] ?? 1;
 
@@ -130,18 +131,33 @@ export default function HomeScreen() {
     setLoading(true);
     let userId = user?.id;
     if (!userId) {
-      const { data: { session } } = await supabase.auth.getSession();
-      userId = session?.user?.id;
+      const { data: { session: s } } = await supabase.auth.getSession();
+      userId = s?.user?.id;
     }
-    if (!userId) return;
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-    if (!error && data) setTransactions(data);
+    if (!userId) { setLoading(false); return; }
+
+    await initDB();
+
+    if (isOnline) {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setTransactions(data);
+        await cacheTransactions(userId, data);
+      } else {
+        // Supabase failed — fall back to local cache
+        const local = await getLocalTransactions(userId);
+        setTransactions(local);
+      }
+    } else {
+      const local = await getLocalTransactions(userId);
+      setTransactions(local);
+    }
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, isOnline]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -158,6 +174,10 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchTransactions();
   }, [user?.id, session?.user?.id]);
+
+  useEffect(() => {
+    if (isOnline) fetchTransactions();
+  }, [isOnline]);
 
   // Auto-scroll
   const daysInMonth = useMemo(

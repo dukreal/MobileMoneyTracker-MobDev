@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "MobileMoneyTracker",
+    "name": "Montra",
     "slug": "MobileMoneyTracker",
     "scheme": "com.moneytracker.app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0a0a0a"
     },
     "ios": {
       "supportsTablet": true
@@ -19,8 +19,8 @@
     "android": {
       "package": "com.moneytracker.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#0a0a0a"
       },
       "androidNavigationBar": {
         "visible": "always",
@@ -31,7 +31,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-web-browser", "expo-router"],
+    "plugins": [
+      "expo-web-browser",
+      "expo-router",
+      "expo-sqlite"
+    ],
     "extra": {
       "eas": {
         "projectId": "7d35ee96-1aea-469f-b689-ab47977570f6"
