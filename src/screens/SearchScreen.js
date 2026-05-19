@@ -15,6 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
+import { buildTheme } from "../constants/settings";
 import { startOfDay, format } from "date-fns";
 import { Ionicons } from "@expo/vector-icons";
 import CalendarModal from "../components/CalendarModal";
@@ -65,7 +66,7 @@ function TransactionItem({ item, theme, currency, index }) {
 
 // ─── SEARCH SCREEN ────────────────────────────────────────────────────────────
 export default function SearchScreen() {
-  const { currency, isDarkMode, user } = useStore();
+  const { currency, isDarkMode, colorTheme, user } = useStore();
   const [transactions, setTransactions] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchTypes, setSearchTypes] = useState(["all"]);
@@ -76,12 +77,9 @@ export default function SearchScreen() {
   const inputRef = useRef(null);
 
   const theme = {
-    bg: isDarkMode ? "#121212" : "#ffffff",
-    card: isDarkMode ? "#1e1e1e" : "#f5f5f5",
-    text: isDarkMode ? "#ffffff" : "#000000",
-    border: isDarkMode ? "#2a2a2a" : "#eeeeee",
-    subText: isDarkMode ? "#666666" : "#aaaaaa",
-    inputBg: isDarkMode ? "#1e1e1e" : "#f5f5f5",
+    ...buildTheme(isDarkMode, colorTheme),
+    get inputBg() { return this.surface; },
+    get card()    { return this.surface; },
   };
 
   const fetchTransactions = useCallback(async () => {
@@ -210,7 +208,7 @@ export default function SearchScreen() {
         })}
         <TouchableOpacity
           onPress={handleDateChipPress}
-          style={[s.chip, { backgroundColor: hasDate ? "#0081db" : theme.inputBg }]}
+          style={[s.chip, { backgroundColor: hasDate ? theme.accent : theme.inputBg }]}
         >
           <Ionicons name={hasDate ? "close" : "calendar-outline"} size={13} color={hasDate ? "#fff" : theme.subText} style={{ marginRight: 5 }} />
           <Text style={[s.chipText, { color: hasDate ? "#fff" : theme.subText }]}>{dateLabel}</Text>
