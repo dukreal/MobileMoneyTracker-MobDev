@@ -334,7 +334,9 @@ export default function ProfileScreen() {
           },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Profile</Text>
+        <Text style={[styles.headerTitle, { color: theme.text, fontSize: 26 * sz }]}>
+          {t(language, "profile")}
+        </Text>
       </Animated.View>
 
       <ScrollView
@@ -357,7 +359,7 @@ export default function ProfileScreen() {
               <View style={[styles.badge, { backgroundColor: isGuest ? theme.danger + "12" : theme.success + "12" }]}>
                 <View style={[styles.badgeDot, { backgroundColor: isGuest ? theme.danger : theme.success }]} />
                 <Text style={[styles.badgeText, { color: isGuest ? theme.danger : theme.success }]}>
-                  {isGuest ? "Local only" : "Cloud synced"}
+                  {isGuest ? t(language, "localOnly") : t(language, "cloudSynced")}
                 </Text>
               </View>
             </View>
@@ -487,7 +489,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.5,
   },
-
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 20,
