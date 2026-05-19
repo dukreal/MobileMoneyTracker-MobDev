@@ -17,13 +17,14 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { useStore } from "../store/useStore";
+import { buildTheme } from "../constants/settings";
 import { supabase } from "../supabase/supabaseClient";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { router } from "expo-router";
 
 export default function DetailsScreen({ item }) {
-  const { isDarkMode, currency } = useStore();
+  const { isDarkMode, currency, colorTheme } = useStore();
   const [fullImage, setFullImage] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const receiptRef = useRef(null);
@@ -43,13 +44,7 @@ export default function DetailsScreen({ item }) {
   const isIncome = item.type === "income";
   const accentColor = isIncome ? "#2ECC71" : "#FF6B6B";
 
-  const theme = {
-    bg: isDarkMode ? "#121212" : "#ffffff",
-    text: isDarkMode ? "#ffffff" : "#000000",
-    subText: isDarkMode ? "#888888" : "#999999",
-    card: isDarkMode ? "#1e1e1e" : "#f9f9f9",
-    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
-  };
+  const theme = buildTheme(isDarkMode, colorTheme);
 
   const handleDelete = async () => {
     Alert.alert(
@@ -235,8 +230,8 @@ export default function DetailsScreen({ item }) {
             activeOpacity={0.7}
             style={[styles.infoCard, styles.infoCardRow, { backgroundColor: theme.card, borderColor: theme.border }]}
           >
-            <View style={[styles.infoIconCircle, { backgroundColor: "#0081db22" }]}>
-              <Ionicons name="location" size={18} color="#0081db" />
+            <View style={[styles.infoIconCircle, { backgroundColor: theme.accent + "22" }]}>
+              <Ionicons name="location" size={18} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.infoCardLabel, { color: theme.subText }]}>LOCATION</Text>
@@ -284,8 +279,8 @@ export default function DetailsScreen({ item }) {
       >
         {item.latitude && (
           <TouchableOpacity style={styles.actionBtn} onPress={openInMaps}>
-            <View style={[styles.actionIcon, { backgroundColor: "#0081db22" }]}>
-              <Ionicons name="map" size={22} color="#0081db" />
+            <View style={[styles.actionIcon, { backgroundColor: theme.accent + "22" }]}>
+              <Ionicons name="map" size={22} color={theme.accent} />
             </View>
             <Text style={[styles.actionLabel, { color: theme.subText }]}>Map</Text>
           </TouchableOpacity>
