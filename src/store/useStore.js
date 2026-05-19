@@ -26,7 +26,7 @@ export const useStore = create(
       currency: "₱",
       language: "english",
       textSize: "medium",
-      colorTheme: "blue",
+      colorTheme: "green",
       toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
       setCurrency: (cur) => set({ currency: cur }),
       setLanguage: (lang) => set({ language: lang }),

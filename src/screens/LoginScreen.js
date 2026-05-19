@@ -12,6 +12,7 @@ import { supabase } from "../supabase/supabaseClient";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import { useStore } from "../store/useStore";
+import { Image } from "react-native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -177,31 +178,158 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Money Tracker</Text>
+      {/* Background subtle grid */}
+      <View style={styles.bgGrid} />
+
+      {/* Logo area */}
+      <View style={{ width: "100%", alignItems: "center" }}>
+      <View style={styles.logoArea}>
+        <Image
+          source={require("../../assets/logo.png")}
+          style={{ width: 130, height: 130 }}
+          resizeMode="contain"
+        />
+        <Text style={styles.appName}>Montra</Text>
+      </View>
+
+      {/* Buttons */}
       {loading ? (
-        <ActivityIndicator size="large" color="#000" />
+        <ActivityIndicator size="large" color="#3B7DD8" style={{ marginTop: 48 }} />
       ) : (
-        <View style={{ width: "80%" }}>
-          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
-            <Text style={styles.googleText}>Sign in with Google</Text>
+        <View style={styles.btnGroup}>
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin} activeOpacity={0.85}>
+            <View style={styles.googleInner}>
+              <Image
+                source={require("../../assets/google-logo.png")}
+                style={{ width: 20, height: 20 }}
+                resizeMode="contain"
+              />
+              <Text style={styles.googleText}>Continue with Google</Text>
+            </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.guestButton} onPress={handleGuestSignIn}>
-            <Text style={styles.buttonText}>Continue as Guest</Text>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity style={styles.guestButton} onPress={handleGuestSignIn} activeOpacity={0.85}>
+            <Text style={styles.guestText}>Continue as Guest</Text>
           </TouchableOpacity>
+
+          <Text style={styles.disclaimer}>
+            Guest data is stored locally only.{"\n"}Link Google anytime to back it up.
+          </Text>
         </View>
       )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" },
-  title: { fontSize: 32, fontWeight: "bold", marginBottom: 50 },
-  googleButton: {
-    backgroundColor: "#fff", padding: 15, borderRadius: 12,
-    borderWidth: 1, borderColor: "#ddd", marginBottom: 15, alignItems: "center",
+  container: {
+    flex: 1,
+    backgroundColor: "#0a0a0a",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+    paddingBottom: 40,
   },
-  googleText: { color: "#000", fontWeight: "bold", fontSize: 16 },
-  guestButton: { backgroundColor: "#000", padding: 15, borderRadius: 12, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+
+  // Background decoration
+  bgGrid: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    opacity: 0.03,
+    backgroundColor: "transparent",
+  },
+
+  // Logo
+  logoArea: {
+    alignItems: "center",
+    marginBottom: 48,
+    width: "100%",
+  },
+  appName: {
+    fontSize: 38,
+    fontWeight: "900",
+    color: "#f0f0f0",
+    letterSpacing: -1,
+    marginBottom: 8,
+  },
+
+  // Buttons
+  btnGroup: {
+    width: "100%",
+    alignItems: "center",
+  },
+  googleButton: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  googleInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  googleText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111",
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 14,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#333",
+  },
+  dividerText: {
+    color: "#666",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  // Guest button
+  guestButton: {
+    width: "100%",
+    backgroundColor: "#161616",
+    borderRadius: 16,
+    paddingVertical: 15,
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  guestText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#888",
+  },
+
+  disclaimer: {
+    fontSize: 12,
+    color: "#555",
+    textAlign: "center",
+    lineHeight: 18,
+    fontWeight: "500",
+  },
 });

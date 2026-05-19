@@ -69,8 +69,8 @@ function SettingRow({ icon, iconBg, iconColor, label, subLabel, right, borderBot
 
 // ─── Color Theme Data ─────────────────────────────────────────────────────────
 const COLOR_THEMES = [
-  { key: "blue",   label: "Blue",      color: "#3B7DD8" },
   { key: "green",  label: "Green",     color: "#27AE60" },
+  { key: "blue",   label: "Blue",      color: "#3B7DD8" },
   { key: "orange", label: "Orange",    color: "#E67E22" },
   { key: "rose",   label: "Rose",      color: "#E05282" },
 ];
