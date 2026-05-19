@@ -840,6 +840,7 @@ export default function ChartsScreen() {
           setSelectedSlice(null);
         }}
         isDarkMode={isDarkMode}
+        accentColor={theme.accent}
       />
     </View>
   );

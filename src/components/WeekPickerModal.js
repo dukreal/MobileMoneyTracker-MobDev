@@ -25,11 +25,11 @@ import {
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-export default function WeekPickerModal({ visible, onClose, currentWeek, onSelectWeek, isDarkMode }) {
+export default function WeekPickerModal({ visible, onClose, currentWeek, onSelectWeek, isDarkMode, accentColor }) {
   const insets = useSafeAreaInsets();
   const today = startOfDay(new Date());
   const listRef = useRef(null);
-  const activeBlue = "#0081db";
+  const activeBlue = accentColor ?? "#0081db";
   
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;

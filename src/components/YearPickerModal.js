@@ -15,9 +15,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-export default function YearPickerModal({ visible, onClose, currentYear, onSelectYear, isDarkMode }) {
+export default function YearPickerModal({ visible, onClose, currentYear, onSelectYear, isDarkMode, accentColor }) {
   const insets = useSafeAreaInsets();
-  const activeBlue = "#0081db";
+  const activeBlue = accentColor ?? "#0081db";
   
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
