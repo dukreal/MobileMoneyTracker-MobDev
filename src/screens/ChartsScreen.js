@@ -20,6 +20,7 @@ import {
   isSameWeek,
   isSameMonth,
 } from "date-fns";
+import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 import { CATEGORIES } from "../constants/Categories";
 import PickerModal from "../components/PickerModal";
 import { router } from "expo-router";
@@ -51,17 +52,13 @@ export default function ChartsScreen() {
   const [selectedWeek, setSelectedWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const { isGuest, isDarkMode, currency, user } = useStore();
+  const { isGuest, isDarkMode, currency, user, colorTheme, textSize, language } = useStore();
 
   const theme = {
-    bg: isDarkMode ? "#121212" : "#ffffff",
-    surface: isDarkMode ? "#1e1e1e" : "#f9f9f9",
+    ...buildTheme(isDarkMode, colorTheme),
     surface2: isDarkMode ? "#1e1e1e" : "#f9f9f9",
-    text: isDarkMode ? "#ffffff" : "#000000",
-    subText: isDarkMode ? "#8e8e93" : "#8e8e93",
-    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
-    accent: "#4A90E2",
   };
+  const sz = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -284,42 +281,42 @@ export default function ChartsScreen() {
       {/* HEADER */}
       <View style={[styles.header, { backgroundColor: theme.bg }]}>
         <View style={styles.headerTopRow}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Analytics
+          <Text style={[styles.headerTitle, { color: theme.text, fontSize: 26 * sz }]}>
+            {t(language, "analytics")}
           </Text>
         </View>
         <View style={{ alignItems: "center" }}>
           {viewMode === "month" ? (
             <TouchableOpacity
-              style={styles.periodPill}
+              style={[styles.periodPill, { backgroundColor: theme.accent + "20" }]}
               onPress={() => setPickerVisible(true)}
             >
-              <Text style={styles.periodPillText}>{periodLabel}</Text>
-              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
+              <Text style={[styles.periodPillText, { color: theme.accent }]}>{periodLabel}</Text>
+              <Ionicons name="chevron-down" size={14} color={theme.accent} />
             </TouchableOpacity>
           ) : viewMode === "week" ? (
             <TouchableOpacity
-              style={styles.periodPill}
+              style={[styles.periodPill, { backgroundColor: theme.accent + "20" }]}
               onPress={() => setPickerVisible(true)}
             >
-              <Text style={styles.periodPillText}>
+              <Text style={[styles.periodPillText, { color: theme.accent }]}>
                 {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 0 })
                   ? "This Week"
                   : periodLabel}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
+              <Ionicons name="chevron-down" size={14} color={theme.accent} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={styles.periodPill}
+              style={[styles.periodPill, { backgroundColor: theme.accent + "20" }]}
               onPress={() => setPickerVisible(true)}
             >
-              <Text style={styles.periodPillText}>
+              <Text style={[styles.periodPillText, { color: theme.accent }]}>
                 {selectedYear === new Date().getFullYear()
                   ? "This Year"
                   : `Year ${selectedYear}`}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
+              <Ionicons name="chevron-down" size={14} color={theme.accent} />
             </TouchableOpacity>
           )}
         </View>
@@ -358,7 +355,7 @@ export default function ChartsScreen() {
                   },
                 ]}
               >
-                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                {t(language, mode)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -368,7 +365,7 @@ export default function ChartsScreen() {
       {/* SUMMARY ROW */}
       <View style={[styles.summaryRow, { backgroundColor: theme.surface }]}>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>Income</Text>
+          <Text style={styles.summaryLabel}>{t(language, "income")}</Text>
           <Text
             style={[styles.summaryVal, { color: "#2ECC71" }]}
             numberOfLines={1}
@@ -380,7 +377,7 @@ export default function ChartsScreen() {
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>Expense</Text>
+          <Text style={styles.summaryLabel}>{t(language, "expense")}</Text>
           <Text
             style={[styles.summaryVal, { color: "#FF6B6B" }]}
             numberOfLines={1}
@@ -392,7 +389,7 @@ export default function ChartsScreen() {
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>Balance</Text>
+          <Text style={styles.summaryLabel}>{t(language, "balance")}</Text>
           <Text
             style={[styles.summaryVal, { color: theme.text }]}
             numberOfLines={1}
@@ -1045,13 +1042,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#4A90E220",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
   },
   periodPillText: {
-    color: "#4A90E2",
     fontSize: 15,
     fontWeight: "700",
   },
