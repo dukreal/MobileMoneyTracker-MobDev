@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 150,
+    minHeight: 300,
   },
   emptyText: {
     textAlign: "center",

@@ -247,11 +247,19 @@ export default function ProfileScreen() {
         const redirectUri = "com.moneytracker.app://";
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: "google",
-          options: { redirectTo: redirectUri, queryParams: { prompt: "select_account" } },
+          options: {
+            redirectTo: redirectUri,
+            queryParams: { prompt: "select_account" },
+            skipBrowserRedirect: true,
+          },
         });
         if (error) throw error;
         if (data?.url) {
-          const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+          const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri, {
+            preferEphemeralSession: true,
+            showInRecents: false,
+            createTask: false,
+          });
           if (result.type === "success" && result.url) {
             const url = result.url;
             const fragment = url.split("#")[1] || "";

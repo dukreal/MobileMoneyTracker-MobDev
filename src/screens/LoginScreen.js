@@ -115,9 +115,14 @@ export default function LoginScreen() {
     const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
     console.log("Proxy redirect URI:", redirectUri);
 
-    const result = await WebBrowser.openAuthSessionAsync(
+   const result = await WebBrowser.openAuthSessionAsync(
       data.url,
       redirectUri,
+      {
+        preferEphemeralSession: true,
+        showInRecents: false,
+        createTask: false,
+      }
     );
 
     console.log("Auth result:", JSON.stringify(result));
