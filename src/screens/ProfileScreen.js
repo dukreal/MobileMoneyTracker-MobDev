@@ -394,20 +394,25 @@ export default function ProfileScreen() {
               theme={theme}
               right={
                 <View style={[styles.segmented, { backgroundColor: theme.surfaceAlt }]}>
-                  {["₱", "$", "€"].map((cur) => (
-                    <TouchableOpacity
-                      key={cur}
-                      onPress={() => setCurrency(cur)}
-                      style={[
-                        styles.segBtn,
-                        currency === cur && { backgroundColor: theme.surface, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-                      ]}
-                    >
-                      <Text style={[styles.segBtnText, { color: currency === cur ? theme.accent : theme.subText }]}>
-                        {cur}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {["₱", "$", "€"].map((cur) => {
+                    const isDisabled = cur !== "₱";
+                    return (
+                      <TouchableOpacity
+                        key={cur}
+                        onPress={() => !isDisabled && setCurrency(cur)}
+                        disabled={isDisabled}
+                        style={[
+                          styles.segBtn,
+                          currency === cur && { backgroundColor: theme.surface, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
+                          isDisabled && { opacity: 0.3 },
+                        ]}
+                      >
+                        <Text style={[styles.segBtnText, { color: currency === cur ? theme.accent : theme.subText }]}>
+                          {cur}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               }
             />
