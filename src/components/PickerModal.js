@@ -385,7 +385,9 @@ export default function PickerModal({
           </View>
           <TouchableOpacity
             onPress={() => {
-              if (localSelected) onSelect(localSelected);
+              if (localSelected) {
+                onSelect(localSelected);
+              }
               handleClose();
             }}
             style={[styles.doneBtn, { paddingBottom: insets.bottom + 15 }]}

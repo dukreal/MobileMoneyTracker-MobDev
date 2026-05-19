@@ -15,9 +15,9 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  ActivityIndicator,  
+  ActivityIndicator,
 } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
 import {
@@ -50,13 +50,7 @@ const MONTHS = [
 ];
 
 // --- 2. TRANSACTION ITEM ---
-function TransactionItem({
-  item,
-  index,
-  theme,
-  currency,
-  isGuest,
-}) {
+function TransactionItem({ item, index, theme, currency, isGuest }) {
   const isExpense = item.type === "expense";
   return (
     <TouchableOpacity
@@ -65,7 +59,12 @@ function TransactionItem({
         styles.txCard,
         { backgroundColor: theme.surface, borderColor: theme.border },
       ]}
-      onPress={() => router.push({ pathname: "/details", params: { item: JSON.stringify(item) } })}
+      onPress={() =>
+        router.push({
+          pathname: "/details",
+          params: { item: JSON.stringify(item) },
+        })
+      }
     >
       <View
         style={[
@@ -92,10 +91,14 @@ function TransactionItem({
           style={[styles.txNote, { color: theme.subText }]}
           numberOfLines={1}
         >
-          {item.created_at ? format(new Date(item.created_at), "h:mm a") : ""}
+          {item.custom_created_at
+            ? `Custom Date · Added ${format(new Date(item.custom_created_at), "MMM d, yyyy")}`
+            : item.created_at
+            ? format(new Date(item.created_at), "h:mm a")
+            : ""}
           {item.notes ? ` • ${item.notes}` : ""}
         </Text>
-      </View>
+      </View> 
       <Text
         style={[styles.txAmount, { color: isExpense ? "#FF6B6B" : "#2ECC71" }]}
       >
@@ -111,7 +114,17 @@ function TransactionItem({
 
 // --- 3. MAIN HOME SCREEN ---
 export default function HomeScreen() {
-  const { currency, isGuest, isDarkMode, colorTheme, textSize, language, user, session, isOnline } = useStore();
+  const {
+    currency,
+    isGuest,
+    isDarkMode,
+    colorTheme,
+    textSize,
+    language,
+    user,
+    session,
+    isOnline,
+  } = useStore();
   const theme = buildTheme(isDarkMode, colorTheme);
   const ts = TEXT_SIZE_MULTIPLIER[textSize] ?? 1;
 
@@ -119,7 +132,10 @@ export default function HomeScreen() {
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
+  const { jumpToDate } = useLocalSearchParams();
+  const [selectedDate, setSelectedDate] = useState(
+    jumpToDate ? startOfDay(new Date(jumpToDate)) : startOfDay(new Date())
+  );
   const [calendarVisible, setCalendarVisible] = useState(false);
 
   const scrollRef = useRef(null);
@@ -131,10 +147,15 @@ export default function HomeScreen() {
     setLoading(true);
     let userId = user?.id;
     if (!userId) {
-      const { data: { session: s } } = await supabase.auth.getSession();
+      const {
+        data: { session: s },
+      } = await supabase.auth.getSession();
       userId = s?.user?.id;
     }
-    if (!userId) { setLoading(false); return; }
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     await initDB();
 
@@ -167,8 +188,11 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (jumpToDate) {
+        setSelectedDate(startOfDay(new Date(jumpToDate)));
+      }
       fetchTransactions();
-    }, [fetchTransactions]),
+    }, [fetchTransactions, jumpToDate]),
   );
 
   useEffect(() => {
@@ -222,21 +246,41 @@ export default function HomeScreen() {
       <View style={styles.headerContainer}>
         {/* Row 1 — App Name */}
         <View style={styles.appNameRow}>
-          <Text style={[styles.appNameText, { color: theme.text, fontSize: 26 * ts }]}>
+          <Text
+            style={[
+              styles.appNameText,
+              { color: theme.text, fontSize: 26 * ts },
+            ]}
+          >
             {t(language, "appName")}
           </Text>
         </View>
 
         {/* Row 2 — Month pill (center) + Icons (right) */}
         <View style={styles.headerMainRow}>
-
           {/* Center — Month pill (absolutely centered) */}
-          <View style={{ position: "absolute", left: 0, right: 0, alignItems: "center", zIndex: 0 }}>
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              alignItems: "center",
+              zIndex: 0,
+            }}
+          >
             <TouchableOpacity
-              style={[styles.monthDisplayRow, { backgroundColor: theme.accent + "20" }]}
+              style={[
+                styles.monthDisplayRow,
+                { backgroundColor: theme.accent + "20" },
+              ]}
               onPress={() => setCalendarVisible(true)}
             >
-              <Text style={[styles.monthLargeText, { color: theme.accent, fontSize: 15 * ts }]}>
+              <Text
+                style={[
+                  styles.monthLargeText,
+                  { color: theme.accent, fontSize: 15 * ts },
+                ]}
+              >
                 {format(selectedDate, "MMMM yyyy")}
               </Text>
               <Ionicons name="chevron-down" size={14} color={theme.accent} />
@@ -317,74 +361,106 @@ export default function HomeScreen() {
       </View>
 
       {/* SUMMARY */}
-      <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
-       <View style={styles.summaryCol}>
-          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>{t(language, "income")}</Text>
-          <Text style={[styles.summaryVal, { color: "#2ECC71", fontSize: 15 * ts }]}>
+      <View
+        style={[
+          styles.summaryCard,
+          {
+            backgroundColor: theme.surface,
+            borderWidth: 1,
+            borderColor: theme.border,
+          },
+        ]}
+      >
+        <View style={styles.summaryCol}>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>
+            {t(language, "income")}
+          </Text>
+          <Text
+            style={[styles.summaryVal, { color: "#2ECC71", fontSize: 15 * ts }]}
+          >
             +{currency}
             {income.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>{t(language, "expense")}</Text>
-          <Text style={[styles.summaryVal, { color: "#FF6B6B", fontSize: 15 * ts }]}>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>
+            {t(language, "expense")}
+          </Text>
+          <Text
+            style={[styles.summaryVal, { color: "#FF6B6B", fontSize: 15 * ts }]}
+          >
             -{currency}
             {expense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>{t(language, "balance")}</Text>
-          <Text style={[styles.summaryVal, { color: theme.text, fontSize: 15 * ts }]}>
-            {income - expense >= 0 ? "" : "-"}{currency}
-            {Math.abs(income - expense).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>
+            {t(language, "balance")}
+          </Text>
+          <Text
+            style={[
+              styles.summaryVal,
+              { color: theme.text, fontSize: 15 * ts },
+            ]}
+          >
+            {income - expense >= 0 ? "" : "-"}
+            {currency}
+            {Math.abs(income - expense).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
           </Text>
         </View>
       </View>
 
       <View style={{ flex: 1 }}>
         {loading ? (
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="large" color={isDarkMode ? "#fff" : "#000"} />
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <ActivityIndicator
+              size="large"
+              color={isDarkMode ? "#fff" : "#000"}
+            />
           </View>
         ) : (
           <FlatList
             data={filteredTransactions}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={isDarkMode ? "#fff" : "#000"} // For iOS
-            colors={["#4A90E2"]} // For Android
+            keyExtractor={(item) => item.id}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={isDarkMode ? "#fff" : "#000"} // For iOS
+                colors={["#4A90E2"]} // For Android
+              />
+            }
+            contentContainerStyle={
+              filteredTransactions.length === 0
+                ? { flexGrow: 1 }
+                : { paddingBottom: 15 }
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons
+                  name="receipt-outline"
+                  size={80}
+                  color={isDarkMode ? "#222" : "#e0e0e0"}
+                />
+                <Text style={[styles.emptyText, { color: theme.subText }]}>
+                  {t(language, "noRecords")}
+                </Text>
+              </View>
+            }
+            renderItem={({ item, index }) => (
+              <TransactionItem
+                item={item}
+                index={index}
+                theme={theme}
+                currency={currency}
+                isGuest={isGuest}
+              />
+            )}
           />
-        }
-        contentContainerStyle={
-          filteredTransactions.length === 0
-            ? { flexGrow: 1 }
-            : { paddingBottom: 15 }
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons
-              name="receipt-outline"
-              size={80}
-              color={isDarkMode ? "#222" : "#e0e0e0"}
-            />
-            <Text style={[styles.emptyText, { color: theme.subText }]}>
-              {t(language, "noRecords")}
-            </Text>
-          </View>
-        }
-        renderItem={({ item, index }) => (
-          <TransactionItem
-            item={item}
-            index={index}
-            theme={theme}
-            currency={currency}
-            isGuest={isGuest}
-          />
-        )}
-      />
         )}
       </View>
 

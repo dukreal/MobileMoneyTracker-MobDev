@@ -14,7 +14,13 @@ import {
   Pressable,
 } from "react-native";
 import LocationPickerModal from "../components/LocationPickerModal";
-import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
+import PickerModal from "../components/PickerModal";
+import {
+  buildTheme,
+  TEXT_SIZE_MULTIPLIER,
+  t,
+  ACCENT_COLORS,
+} from "../constants/settings";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -25,7 +31,11 @@ import { useStore } from "../store/useStore";
 import { CATEGORIES } from "../constants/Categories";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, router } from "expo-router";
-import { initDB, insertLocalTransaction, enqueuePendingOp } from "../db/localDB";
+import {
+  initDB,
+  insertLocalTransaction,
+  enqueuePendingOp,
+} from "../db/localDB";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,8 +46,18 @@ function AnimatedRow({ children, delay = 0, style }) {
   const translateY = useRef(new Animated.Value(18)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 420, delay, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 0, duration: 420, delay, useNativeDriver: true }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 420,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 420,
+        delay,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
   return (
@@ -53,27 +73,57 @@ function PressableRow({ onPress, children, style }) {
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start()}
-      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start()}
+      onPressIn={() =>
+        Animated.spring(scale, {
+          toValue: 0.97,
+          useNativeDriver: true,
+          speed: 40,
+        }).start()
+      }
+      onPressOut={() =>
+        Animated.spring(scale, {
+          toValue: 1,
+          useNativeDriver: true,
+          speed: 40,
+        }).start()
+      }
     >
-      <Animated.View style={[{ transform: [{ scale }] }, style]}>{children}</Animated.View>
+      <Animated.View style={[{ transform: [{ scale }] }, style]}>
+        {children}
+      </Animated.View>
     </Pressable>
   );
 }
 
 // ─── Section Header ───────────────────────────────────────────────────────────
 function SectionHeader({ label, theme }) {
-  return <Text style={[styles.sectionLabel, { color: theme.subText }]}>{label}</Text>;
+  return (
+    <Text style={[styles.sectionLabel, { color: theme.subText }]}>{label}</Text>
+  );
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function AddScreen() {
-  const { isDarkMode, user, currency, colorTheme, textSize, language, isOnline, refreshPendingCount } = useStore();
+  const {
+    isDarkMode,
+    user,
+    currency,
+    colorTheme,
+    textSize,
+    language,
+    isOnline,
+    refreshPendingCount,
+    advancedMode,
+  } = useStore();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [inputKey, setInputKey] = useState(0);
   const amountRef = useRef(null);
 
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isCustomMake, setIsCustomMake] = useState(false);
+  const accentColor = ACCENT_COLORS[colorTheme] ?? "#3B7DD8";
   const [type, setType] = useState("expense");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -87,22 +137,42 @@ export default function AddScreen() {
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(headerAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    Animated.timing(headerAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
     initDB();
   }, []);
 
   const openSheet = () => {
     setCatSheetVisible(true);
     Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-      Animated.spring(sheetTranslateY, { toValue: 0, damping: 20, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sheetTranslateY, {
+        toValue: 0,
+        damping: 20,
+        useNativeDriver: true,
+      }),
     ]).start();
   };
 
   const closeSheet = () => {
     Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(sheetTranslateY, { toValue: 300, duration: 200, useNativeDriver: true }),
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetTranslateY, {
+        toValue: 300,
+        duration: 200,
+        useNativeDriver: true,
+      }),
     ]).start(() => {
       setCatSheetVisible(false);
       overlayOpacity.setValue(0);
@@ -119,9 +189,15 @@ export default function AddScreen() {
 
   const theme = {
     ...buildTheme(isDarkMode, colorTheme),
-    get card()        { return this.surface; },
-    get inputBorder() { return this.border; },
-    get placeholder() { return this.subText; },
+    get card() {
+      return this.surface;
+    },
+    get inputBorder() {
+      return this.border;
+    },
+    get placeholder() {
+      return this.subText;
+    },
   };
   const textScale = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
 
@@ -133,7 +209,10 @@ export default function AddScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission Denied", "Allow location access to tag your entry.");
+        Alert.alert(
+          "Permission Denied",
+          "Allow location access to tag your entry.",
+        );
         setLocationOption(null);
         return;
       }
@@ -143,9 +222,15 @@ export default function AddScreen() {
         longitude: loc.coords.longitude,
       });
       const placeName = address[0]
-        ? `${address[0].road || address[0].name || ""}, ${address[0].city || ""}`.trim().replace(/^,|,$/, "")
+        ? `${address[0].road || address[0].name || ""}, ${address[0].city || ""}`
+            .trim()
+            .replace(/^,|,$/, "")
         : "Current Location";
-      setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, name: placeName });
+      setLocation({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        name: placeName,
+      });
     } catch {
       Alert.alert("Location Error", "Could not fetch your location.");
       setLocationOption(null);
@@ -155,21 +240,30 @@ export default function AddScreen() {
   };
 
   const pickImage = async () => {
-    if (images.length >= 3) return Alert.alert("Limit Reached", "Max 3 images.");
+    if (images.length >= 3)
+      return Alert.alert("Limit Reached", "Max 3 images.");
     Alert.alert("Add Photo", "Choose a source", [
       {
         text: "Camera",
         onPress: async () => {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== "granted") return Alert.alert("Permission Denied", "Allow camera access.");
-          let result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.5 });
+          if (status !== "granted")
+            return Alert.alert("Permission Denied", "Allow camera access.");
+          let result = await ImagePicker.launchCameraAsync({
+            allowsEditing: false,
+            quality: 0.5,
+          });
           if (!result.canceled) setPreviewImage(result.assets[0].uri);
         },
       },
       {
         text: "Photos",
         onPress: async () => {
-          let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: false, quality: 0.5 });
+          let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            allowsEditing: false,
+            quality: 0.5,
+          });
           if (!result.canceled) setPreviewImage(result.assets[0].uri);
         },
       },
@@ -182,12 +276,16 @@ export default function AddScreen() {
     for (const uri of images) {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
       const filePath = `${userId}/${fileName}`;
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: "base64" });
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: "base64",
+      });
       const { data } = await supabase.storage
         .from("transaction-images")
         .upload(filePath, decode(base64), { contentType: "image/jpeg" });
       if (data) {
-        const { data: urlData } = supabase.storage.from("transaction-images").getPublicUrl(filePath);
+        const { data: urlData } = supabase.storage
+          .from("transaction-images")
+          .getPublicUrl(filePath);
         uploadedUrls.push(urlData.publicUrl);
       }
     }
@@ -204,7 +302,9 @@ export default function AddScreen() {
     try {
       let userId = user?.id;
       if (!userId) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         userId = session?.user?.id;
       }
       if (!userId) {
@@ -212,6 +312,7 @@ export default function AddScreen() {
         userId = anonData?.user?.id;
       }
       if (!userId) return Alert.alert("Error", "Could not start a session.");
+      const today = new Date();
       const payload = {
         user_id: userId,
         amount: parsedAmount,
@@ -222,21 +323,28 @@ export default function AddScreen() {
         image_urls: [],
         latitude: location?.latitude || null,
         longitude: location?.longitude || null,
-        created_at: new Date().toISOString(),
+        created_at: selectedDate.toISOString(),
+        custom_created_at: isCustomMake ? today.toISOString() : null,
       };
 
       await initDB();
 
       if (isOnline) {
         const imageUrls = await uploadImagesToStorage(userId);
-        const { error } = await supabase.from("transactions").insert([{
-          ...payload,
-          image_urls: imageUrls,
-        }]);
+        const { error } = await supabase.from("transactions").insert([
+          {
+            ...payload,
+            image_urls: imageUrls,
+          },
+        ]);
         if (error) throw error;
       } else {
         const localId = uuidv4();
-        await insertLocalTransaction({ id: localId, ...payload, is_local: true });
+        await insertLocalTransaction({
+          id: localId,
+          ...payload,
+          is_local: true,
+        });
         await enqueuePendingOp(localId, "INSERT", { id: localId, ...payload });
         await refreshPendingCount();
       }
@@ -244,8 +352,10 @@ export default function AddScreen() {
       resetFields();
       Alert.alert(
         isOnline ? "Saved!" : "Saved Offline",
-        isOnline ? "Transaction added." : "Saved locally. Will sync when back online.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
+        isOnline
+          ? "Transaction added."
+          : "Saved locally. Will sync when back online.",
+        [{ text: "OK", onPress: () => router.replace({ pathname: "/(tabs)", params: { jumpToDate: selectedDate.toISOString() } }) }]
       );
     } catch (err) {
       console.log("Save error:", JSON.stringify(err));
@@ -263,10 +373,16 @@ export default function AddScreen() {
     setImages([]);
     setLocation(null);
     setLoading(false);
+    setSelectedDate(new Date());
+    setIsCustomMake(false);
     setInputKey((k) => k + 1);
   }, []);
 
-  useFocusEffect(useCallback(() => { resetFields(); }, [resetFields]));
+  useFocusEffect(
+    useCallback(() => {
+      resetFields();
+    }, [resetFields]),
+  );
 
   const expenseColor = "#FF6B6B";
   const incomeColor = "#2ECC71";
@@ -274,14 +390,20 @@ export default function AddScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
-
       {/* ── HEADER ── */}
       <Animated.View
         style={[
           styles.header,
           {
             opacity: headerAnim,
-            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }],
+            transform: [
+              {
+                translateY: headerAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-10, 0],
+                }),
+              },
+            ],
           },
         ]}
       >
@@ -292,57 +414,110 @@ export default function AddScreen() {
 
       {/* ── AMOUNT HERO CARD ── */}
       <AnimatedRow delay={60}>
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {/* Type Toggle */}
-            <View style={[styles.typeToggleRow, { borderBottomColor: theme.border }]}>
-              {[
-                { key: "expense", label: t(language, "expense"), icon: "arrow-down-circle", color: expenseColor },
-                { key: "income",  label: t(language, "income"),  icon: "arrow-up-circle",   color: incomeColor  },
-              ].map((opt, i) => (
-                <TouchableOpacity
-                  key={opt.key}
-                  onPress={() => setType(opt.key)}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+        >
+          {/* Type Toggle */}
+          <View
+            style={[styles.typeToggleRow, { borderBottomColor: theme.border }]}
+          >
+            {[
+              {
+                key: "expense",
+                label: t(language, "expense"),
+                icon: "arrow-down-circle",
+                color: expenseColor,
+              },
+              {
+                key: "income",
+                label: t(language, "income"),
+                icon: "arrow-up-circle",
+                color: incomeColor,
+              },
+            ].map((opt, i) => (
+              <TouchableOpacity
+                key={opt.key}
+                onPress={() => setType(opt.key)}
+                style={[
+                  styles.typeBtn,
+                  i === 0 && {
+                    borderRightWidth: 1,
+                    borderRightColor: theme.border,
+                  },
+                  type === opt.key && { backgroundColor: opt.color + "12" },
+                ]}
+              >
+                <Ionicons
+                  name={opt.icon}
+                  size={14}
+                  color={type === opt.key ? opt.color : theme.subText}
+                  style={{ marginRight: 5 }}
+                />
+                <Text
                   style={[
-                    styles.typeBtn,
-                    i === 0 && { borderRightWidth: 1, borderRightColor: theme.border },
-                    type === opt.key && { backgroundColor: opt.color + "12" },
+                    styles.typeBtnText,
+                    {
+                      color: type === opt.key ? opt.color : theme.subText,
+                      fontSize: 13 * textScale,
+                    },
                   ]}
                 >
-                  <Ionicons name={opt.icon} size={14} color={type === opt.key ? opt.color : theme.subText} style={{ marginRight: 5 }} />
-                  <Text style={[styles.typeBtnText, { color: type === opt.key ? opt.color : theme.subText, fontSize: 13 * textScale }]}>
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Amount Input */}
-            <View style={styles.amountRow}>
-              <Text style={[styles.currencySymbol, { color: typeColor, fontSize: 22 * textScale }]}>{currency}</Text>
-              <TextInput
-                key={inputKey}
-                ref={amountRef}
-                style={[styles.amountInput, { color: typeColor, fontSize: 42 * textScale }]}
-                textAlign="center"
-                placeholder="0.00"
-                placeholderTextColor={typeColor + "55"}
-                keyboardType="decimal-pad"
-                value={amount}
-                onChangeText={setAmount}
-                caretHidden={false}
-              />
-            </View>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        </AnimatedRow>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          {/* Amount Input */}
+          <View style={styles.amountRow}>
+            <Text
+              style={[
+                styles.currencySymbol,
+                { color: typeColor, fontSize: 22 * textScale },
+              ]}
+            >
+              {currency}
+            </Text>
+            <TextInput
+              key={inputKey}
+              ref={amountRef}
+              style={[
+                styles.amountInput,
+                { color: typeColor, fontSize: 42 * textScale },
+              ]}
+              textAlign="center"
+              placeholder="0.00"
+              placeholderTextColor={typeColor + "55"}
+              keyboardType="decimal-pad"
+              value={amount}
+              onChangeText={setAmount}
+              caretHidden={false}
+            />
+          </View>
+        </View>
+      </AnimatedRow>
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+      >
         {/* ── NOTES ── */}
         <AnimatedRow delay={100}>
           <SectionHeader label={t(language, "notes")} theme={theme} />
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
             <TextInput
-              style={[styles.notesInput, { color: theme.text, fontSize: 15 * textScale }]}
+              style={[
+                styles.notesInput,
+                { color: theme.text, fontSize: 15 * textScale },
+              ]}
               placeholder={t(language, "notes")}
               placeholderTextColor={theme.placeholder}
               value={notes}
@@ -352,11 +527,71 @@ export default function AddScreen() {
           </View>
         </AnimatedRow>
 
+        {/* ── DATE (Advanced Mode only) ── */}
+        {advancedMode && (
+          <AnimatedRow delay={120}>
+            <SectionHeader label="Date" theme={theme} />
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+            >
+              <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  gap: 12,
+                }}
+              >
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 9,
+                    backgroundColor: theme.accent + "22",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Ionicons
+                    name="calendar-outline"
+                    size={17}
+                    color={theme.accent}
+                  />
+                </View>
+                <Text
+                  style={{
+                    color: theme.text,
+                    fontWeight: "600",
+                    fontSize: 14 * textScale,
+                    flex: 1,
+                  }}
+                >
+                  {selectedDate.toDateString()}
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={theme.subText}
+                />
+              </TouchableOpacity>
+            </View>
+          </AnimatedRow>
+        )}
+
         {/* ── CATEGORY ── */}
         <AnimatedRow delay={140}>
           <SectionHeader label={t(language, "category")} theme={theme} />
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
             {/* Selected category bar */}
             {selectedCat ? (
               <PressableRow
@@ -366,27 +601,85 @@ export default function AddScreen() {
                   openSheet();
                 }}
               >
-                <View style={[styles.selectedCatBar, { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
-                  <View style={[styles.selectedCatIcon, { backgroundColor: selectedCat.color + "22" }]}>
-                    <Ionicons name={selectedCat.icon} size={20} color={selectedCat.color} />
+                <View
+                  style={[
+                    styles.selectedCatBar,
+                    { borderBottomWidth: 1, borderBottomColor: theme.border },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.selectedCatIcon,
+                      { backgroundColor: selectedCat.color + "22" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={selectedCat.icon}
+                      size={20}
+                      color={selectedCat.color}
+                    />
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.selectedCatName, { color: selectedCat.color }]}>{selectedCat.name}</Text>
-                    <Text style={[styles.selectedCatSub, { color: theme.placeholder }]}>
+                    <Text
+                      style={[
+                        styles.selectedCatName,
+                        { color: selectedCat.color },
+                      ]}
+                    >
+                      {selectedCat.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.selectedCatSub,
+                        { color: theme.placeholder },
+                      ]}
+                    >
                       {selectedSub || "Tap to pick sub-category"}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={theme.placeholder} />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={theme.placeholder}
+                  />
                 </View>
               </PressableRow>
             ) : (
-              <View style={[styles.selectedCatBar, { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
-                <View style={[styles.selectedCatIcon, { backgroundColor: theme.surfaceAlt }]}>
-                  <Ionicons name="grid-outline" size={20} color={theme.placeholder} />
+              <View
+                style={[
+                  styles.selectedCatBar,
+                  { borderBottomWidth: 1, borderBottomColor: theme.border },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.selectedCatIcon,
+                    { backgroundColor: theme.surfaceAlt },
+                  ]}
+                >
+                  <Ionicons
+                    name="grid-outline"
+                    size={20}
+                    color={theme.placeholder}
+                  />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.selectedCatName, { color: theme.placeholder }]}>No category selected</Text>
-                  <Text style={[styles.selectedCatSub, { color: theme.placeholder }]}>Please select below</Text>
+                  <Text
+                    style={[
+                      styles.selectedCatName,
+                      { color: theme.placeholder },
+                    ]}
+                  >
+                    No category selected
+                  </Text>
+                  <Text
+                    style={[
+                      styles.selectedCatSub,
+                      { color: theme.placeholder },
+                    ]}
+                  >
+                    Please select below
+                  </Text>
                 </View>
               </View>
             )}
@@ -399,19 +692,29 @@ export default function AddScreen() {
                   style={[
                     styles.catItem,
                     {
-                      backgroundColor: selectedCat?.name === cat.name ? cat.color + "22" : theme.surfaceAlt,
+                      backgroundColor:
+                        selectedCat?.name === cat.name
+                          ? cat.color + "22"
+                          : theme.surfaceAlt,
                       borderWidth: 2,
-                      borderColor: selectedCat?.name === cat.name ? cat.color : "transparent",
+                      borderColor:
+                        selectedCat?.name === cat.name
+                          ? cat.color
+                          : "transparent",
                     },
                   ]}
                   onPress={() => {
                     setSheetCat(cat);
-                    setSheetSub(selectedCat?.name === cat.name ? selectedSub : null);
+                    setSheetSub(
+                      selectedCat?.name === cat.name ? selectedSub : null,
+                    );
                     openSheet();
                   }}
                 >
                   <Ionicons name={cat.icon} size={28} color={cat.color} />
-                  <Text style={[styles.catText, { color: theme.text }]}>{cat.name}</Text>
+                  <Text style={[styles.catText, { color: theme.text }]}>
+                    {cat.name}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -421,17 +724,32 @@ export default function AddScreen() {
         {/* ── LOCATION ── */}
         <AnimatedRow delay={180}>
           <SectionHeader label="Location" theme={theme} />
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
             {/* Option buttons */}
-            <View style={[styles.locationBtnRow, { borderBottomWidth: location ? 1 : 0, borderBottomColor: theme.border }]}>
+            <View
+              style={[
+                styles.locationBtnRow,
+                {
+                  borderBottomWidth: location ? 1 : 0,
+                  borderBottomColor: theme.border,
+                },
+              ]}
+            >
               <TouchableOpacity
                 onPress={handleUseCurrentLocation}
                 disabled={!isOnline}
                 style={[
                   styles.locationOptionBtn,
                   {
-                    backgroundColor: locationOption === "current" ? theme.accent + "12" : "transparent",
+                    backgroundColor:
+                      locationOption === "current"
+                        ? theme.accent + "12"
+                        : "transparent",
                     borderRightWidth: 1,
                     borderRightColor: theme.border,
                     opacity: !isOnline ? 0.4 : 1,
@@ -441,26 +759,64 @@ export default function AddScreen() {
                 {fetchingLoc ? (
                   <ActivityIndicator size="small" color={theme.accent} />
                 ) : (
-                  <Ionicons name="navigate" size={16} color={locationOption === "current" ? theme.accent : theme.placeholder} />
+                  <Ionicons
+                    name="navigate"
+                    size={16}
+                    color={
+                      locationOption === "current"
+                        ? theme.accent
+                        : theme.placeholder
+                    }
+                  />
                 )}
-                <Text style={[styles.locationOptionText, { color: locationOption === "current" ? theme.accent : theme.text }]}>
+                <Text
+                  style={[
+                    styles.locationOptionText,
+                    {
+                      color:
+                        locationOption === "current"
+                          ? theme.accent
+                          : theme.text,
+                    },
+                  ]}
+                >
                   Current
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => { setLocationOption("map"); handleGetLocation(); }}
+                onPress={() => {
+                  setLocationOption("map");
+                  handleGetLocation();
+                }}
                 disabled={!isOnline}
                 style={[
                   styles.locationOptionBtn,
                   {
-                    backgroundColor: locationOption === "map" ? theme.accent + "12" : "transparent",
+                    backgroundColor:
+                      locationOption === "map"
+                        ? theme.accent + "12"
+                        : "transparent",
                     opacity: !isOnline ? 0.4 : 1,
                   },
                 ]}
               >
-                <Ionicons name="map" size={16} color={locationOption === "map" ? theme.accent : theme.placeholder} />
-                <Text style={[styles.locationOptionText, { color: locationOption === "map" ? theme.accent : theme.text }]}>
+                <Ionicons
+                  name="map"
+                  size={16}
+                  color={
+                    locationOption === "map" ? theme.accent : theme.placeholder
+                  }
+                />
+                <Text
+                  style={[
+                    styles.locationOptionText,
+                    {
+                      color:
+                        locationOption === "map" ? theme.accent : theme.text,
+                    },
+                  ]}
+                >
                   Pick on Map
                 </Text>
               </TouchableOpacity>
@@ -470,11 +826,23 @@ export default function AddScreen() {
             {location && (
               <View style={styles.locationResult}>
                 <Ionicons name="location" size={16} color={theme.accent} />
-                <Text style={[styles.locationResultText, { color: theme.text }]} numberOfLines={2}>
+                <Text
+                  style={[styles.locationResultText, { color: theme.text }]}
+                  numberOfLines={2}
+                >
                   {location.name}
                 </Text>
-                <TouchableOpacity onPress={() => { setLocation(null); setLocationOption(null); }}>
-                  <Ionicons name="close-circle" size={18} color={theme.placeholder} />
+                <TouchableOpacity
+                  onPress={() => {
+                    setLocation(null);
+                    setLocationOption(null);
+                  }}
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={18}
+                    color={theme.placeholder}
+                  />
                 </TouchableOpacity>
               </View>
             )}
@@ -484,14 +852,27 @@ export default function AddScreen() {
         {/* ── PHOTOS ── */}
         <AnimatedRow delay={220}>
           <SectionHeader label={`Photos · ${images.length}/3`} theme={theme} />
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
             <View style={styles.imagePreviewRow}>
               {[0, 1, 2].map((i) => (
                 <View key={i} style={{ flex: 1 }}>
                   {images[i] ? (
                     <View>
-                      <Image source={{ uri: images[i] }} style={styles.previewImage} />
-                      <TouchableOpacity style={styles.removeImg} onPress={() => setImages(images.filter((_, idx) => idx !== i))}>
+                      <Image
+                        source={{ uri: images[i] }}
+                        style={styles.previewImage}
+                      />
+                      <TouchableOpacity
+                        style={styles.removeImg}
+                        onPress={() =>
+                          setImages(images.filter((_, idx) => idx !== i))
+                        }
+                      >
                         <Ionicons name="close-circle" size={20} color="red" />
                       </TouchableOpacity>
                     </View>
@@ -510,7 +891,11 @@ export default function AddScreen() {
                         },
                       ]}
                     >
-                      <Ionicons name="add" size={24} color={theme.placeholder} />
+                      <Ionicons
+                        name="add"
+                        size={24}
+                        color={theme.placeholder}
+                      />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -518,53 +903,108 @@ export default function AddScreen() {
             </View>
           </View>
         </AnimatedRow>
-
       </ScrollView>
 
       {/* ── SAVE BUTTON ── */}
-      <View style={{ justifyContent: "flex-end", paddingBottom: Math.max(0, insets.bottom - 15) }}> 
-      <AnimatedRow delay={260}>
-        <PressableRow
-          onPress={handleSave}
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor: isDarkMode ? "#fff" : "#000",
-              marginHorizontal: 20,
-              marginBottom: 0,
-              opacity: !amount || !selectedCat || !selectedSub ? 0.4 : 1,
-            },
-          ]}
-        >
-          <View style={{ alignItems: "center" }}>
-            {loading ? (
-              <ActivityIndicator color={isDarkMode ? "#000" : "#fff"} />
-            ) : (
-              <Text style={[styles.saveBtnText, { color: isDarkMode ? "#000" : "#fff", fontSize: 16 * textScale }]}>
-                {t(language, "save")}
-              </Text>
-            )}
-          </View>
-        </PressableRow>
-      </AnimatedRow>
+      <View
+        style={{
+          justifyContent: "flex-end",
+          paddingBottom: Math.max(0, insets.bottom - 15),
+        }}
+      >
+        <AnimatedRow delay={260}>
+          <PressableRow
+            onPress={handleSave}
+            style={[
+              styles.saveButton,
+              {
+                backgroundColor: isDarkMode ? "#fff" : "#000",
+                marginHorizontal: 20,
+                marginBottom: 0,
+                opacity: !amount || !selectedCat || !selectedSub ? 0.4 : 1,
+              },
+            ]}
+          >
+            <View style={{ alignItems: "center" }}>
+              {loading ? (
+                <ActivityIndicator color={isDarkMode ? "#000" : "#fff"} />
+              ) : (
+                <Text
+                  style={[
+                    styles.saveBtnText,
+                    {
+                      color: isDarkMode ? "#000" : "#fff",
+                      fontSize: 16 * textScale,
+                    },
+                  ]}
+                >
+                  {t(language, "save")}
+                </Text>
+              )}
+            </View>
+          </PressableRow>
+        </AnimatedRow>
       </View>
 
       {/* ── CATEGORY BOTTOM SHEET ── */}
-      <Modal visible={catSheetVisible} transparent animationType="none" onRequestClose={closeSheet}>
-        <Animated.View style={[styles.sheetOverlay, { opacity: overlayOpacity }]}>
-          <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={closeSheet} />
-          <Animated.View style={{ transform: [{ translateY: sheetTranslateY }] }}>
-            <View style={[styles.sheetContainer, { backgroundColor: theme.surface, paddingBottom: Math.max(36, insets.bottom + 16) }]}>
-              <View style={[styles.sheetHandle, { backgroundColor: isDarkMode ? "#444" : "#ddd" }]} />
+      <Modal
+        visible={catSheetVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeSheet}
+      >
+        <Animated.View
+          style={[styles.sheetOverlay, { opacity: overlayOpacity }]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            onPress={closeSheet}
+          />
+          <Animated.View
+            style={{ transform: [{ translateY: sheetTranslateY }] }}
+          >
+            <View
+              style={[
+                styles.sheetContainer,
+                {
+                  backgroundColor: theme.surface,
+                  paddingBottom: Math.max(36, insets.bottom + 16),
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.sheetHandle,
+                  { backgroundColor: isDarkMode ? "#444" : "#ddd" },
+                ]}
+              />
 
               {sheetCat && (
                 <View style={styles.sheetHeader}>
-                  <View style={[styles.sheetIconCircle, { backgroundColor: sheetCat.color + "22" }]}>
-                    <Ionicons name={sheetCat.icon} size={24} color={sheetCat.color} />
+                  <View
+                    style={[
+                      styles.sheetIconCircle,
+                      { backgroundColor: sheetCat.color + "22" },
+                    ]}
+                  >
+                    <Ionicons
+                      name={sheetCat.icon}
+                      size={24}
+                      color={sheetCat.color}
+                    />
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.sheetTitle, { color: theme.text }]}>{sheetCat.name}</Text>
-                    <Text style={[styles.sheetSubtitle, { color: theme.placeholder }]}>Select a sub-category</Text>
+                    <Text style={[styles.sheetTitle, { color: theme.text }]}>
+                      {sheetCat.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.sheetSubtitle,
+                        { color: theme.placeholder },
+                      ]}
+                    >
+                      Select a sub-category
+                    </Text>
                   </View>
                 </View>
               )}
@@ -576,14 +1016,24 @@ export default function AddScreen() {
                     style={[
                       styles.sheetSubItem,
                       {
-                        backgroundColor: sheetSub === sub ? sheetCat.color + "22" : theme.surfaceAlt,
-                        borderColor: sheetSub === sub ? sheetCat.color : "transparent",
+                        backgroundColor:
+                          sheetSub === sub
+                            ? sheetCat.color + "22"
+                            : theme.surfaceAlt,
+                        borderColor:
+                          sheetSub === sub ? sheetCat.color : "transparent",
                         borderWidth: 1.5,
                       },
                     ]}
                     onPress={() => setSheetSub(sub)}
                   >
-                    <Text style={{ color: sheetSub === sub ? sheetCat.color : theme.text, fontSize: 13, fontWeight: "600" }}>
+                    <Text
+                      style={{
+                        color: sheetSub === sub ? sheetCat.color : theme.text,
+                        fontSize: 13,
+                        fontWeight: "600",
+                      }}
+                    >
                       {sub}
                     </Text>
                   </TouchableOpacity>
@@ -591,9 +1041,19 @@ export default function AddScreen() {
               </View>
 
               <TouchableOpacity
-                style={[styles.sheetConfirmBtn, { backgroundColor: theme.accent, opacity: sheetSub ? 1 : 0.4 }]}
+                style={[
+                  styles.sheetConfirmBtn,
+                  {
+                    backgroundColor: theme.accent,
+                    opacity: sheetSub ? 1 : 0.4,
+                  },
+                ]}
                 disabled={!sheetSub}
-                onPress={() => { setSelectedCat(sheetCat); setSelectedSub(sheetSub); closeSheet(); }}
+                onPress={() => {
+                  setSelectedCat(sheetCat);
+                  setSelectedSub(sheetSub);
+                  closeSheet();
+                }}
               >
                 <Text style={styles.sheetConfirmText}>Confirm</Text>
               </TouchableOpacity>
@@ -605,27 +1065,79 @@ export default function AddScreen() {
       {/* ── LOCATION PICKER ── */}
       <LocationPickerModal
         visible={locationModalVisible}
-        onClose={() => { setLocationModalVisible(false); if (!location) setLocationOption(null); }}
-        onConfirm={(loc) => { setLocation(loc); setLocationOption("map"); }}
+        onClose={() => {
+          setLocationModalVisible(false);
+          if (!location) setLocationOption(null);
+        }}
+        onConfirm={(loc) => {
+          setLocation(loc);
+          setLocationOption("map");
+        }}
         isDarkMode={isDarkMode}
         colorTheme={colorTheme}
         textSize={textSize}
         language={language}
       />
 
+      {/* ── DATE PICKER MODAL ── */}
+      <PickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        mode="date"
+        currentValue={selectedDate}
+        onSelect={(date) => {
+          setSelectedDate(date);
+          const isToday = new Date(date).toDateString() === new Date().toDateString();
+          setIsCustomMake(!isToday);
+        }}
+        isDarkMode={isDarkMode}
+        accentColor={accentColor}
+      />
+
       {/* ── IMAGE PREVIEW MODAL ── */}
       <Modal visible={!!previewImage} transparent animationType="fade">
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.95)", justifyContent: "center", alignItems: "center" }}>
-          <Image source={{ uri: previewImage }} style={{ width: "90%", height: "60%", borderRadius: 16 }} resizeMode="contain" />
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.95)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Image
+            source={{ uri: previewImage }}
+            style={{ width: "90%", height: "60%", borderRadius: 16 }}
+            resizeMode="contain"
+          />
           <View style={{ flexDirection: "row", gap: 16, marginTop: 24 }}>
-            <TouchableOpacity onPress={() => setPreviewImage(null)} style={{ backgroundColor: "#333", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 }}>
-              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Retake</Text>
+            <TouchableOpacity
+              onPress={() => setPreviewImage(null)}
+              style={{
+                backgroundColor: "#333",
+                paddingHorizontal: 32,
+                paddingVertical: 14,
+                borderRadius: 14,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+                Retake
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => { setImages([...images, previewImage]); setPreviewImage(null); }}
-              style={{ backgroundColor: "#fff", paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14 }}
+              onPress={() => {
+                setImages([...images, previewImage]);
+                setPreviewImage(null);
+              }}
+              style={{
+                backgroundColor: "#fff",
+                paddingHorizontal: 32,
+                paddingVertical: 14,
+                borderRadius: 14,
+              }}
             >
-              <Text style={{ color: "#000", fontWeight: "700", fontSize: 15 }}>Use Photo</Text>
+              <Text style={{ color: "#000", fontWeight: "700", fontSize: 15 }}>
+                Use Photo
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

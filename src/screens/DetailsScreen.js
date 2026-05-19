@@ -75,7 +75,7 @@ export default function DetailsScreen({ item }) {
             Alert.alert(
               isOnline ? "Deleted" : "Deleted Offline",
               isOnline ? "Transaction removed." : "Removed locally. Will sync when back online.",
-              [{ text: "OK", onPress: () => router.back() }]
+              [{ text: "OK", onPress: () => router.replace({ pathname: "/(tabs)", params: { jumpToDate: item.created_at } }) }]
             );
           },
         },
@@ -125,7 +125,7 @@ export default function DetailsScreen({ item }) {
           },
         ]}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace({ pathname: "/(tabs)", params: { jumpToDate: item.created_at } })} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Details</Text>
@@ -180,7 +180,11 @@ export default function DetailsScreen({ item }) {
             <View style={styles.heroMetaItem}>
               <Ionicons name="time-outline" size={13} color={theme.subText} />
               <Text style={[styles.heroMetaText, { color: theme.subText }]}>
-                {item.created_at ? format(new Date(item.created_at), "h:mm a") : "N/A"}
+                {item.custom_created_at
+                  ? `Custom Date · Added ${format(new Date(item.custom_created_at), "MMM d, yyyy")}`
+                  : item.created_at
+                  ? format(new Date(item.created_at), "h:mm a")
+                  : "N/A"}
               </Text>
             </View>
           </View>
@@ -369,7 +373,11 @@ export default function DetailsScreen({ item }) {
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <Text style={{ color: theme.subText, fontSize: 13 }}>Time</Text>
                 <Text style={{ color: theme.text, fontSize: 13, fontWeight: "600" }}>
-                  {item.created_at ? format(new Date(item.created_at), "h:mm a") : "N/A"}
+                  {item.custom_created_at
+                    ? `Custom Date · Added ${format(new Date(item.custom_created_at), "MMM d, yyyy")}`
+                    : item.created_at
+                    ? format(new Date(item.created_at), "h:mm a")
+                    : "N/A"}
                 </Text>
               </View>
               {item.notes ? (

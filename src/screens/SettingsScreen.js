@@ -98,6 +98,8 @@ export default function SettingsScreen() {
     setTextSize,
     language,
     setLanguage,
+    advancedMode,
+    toggleAdvancedMode,
   } = useStore();
 
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -223,6 +225,38 @@ export default function SettingsScreen() {
           </View>
         </AnimatedRow>
 
+        {/* ── ADVANCED ── */}
+        <AnimatedRow delay={100}>
+          <SectionHeader label="Advanced" theme={theme} sz={sz} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <SettingRow
+              icon="calendar-outline"
+              iconBg="#5AC8FA15"
+              iconColor="#5AC8FA"
+              label="Advanced Mode"
+              subLabel="Choose custom date when adding"
+              theme={theme}
+              sz={sz}
+              right={
+                <TouchableOpacity
+                  onPress={toggleAdvancedMode}
+                  style={[
+                    styles.switchTrack,
+                    { backgroundColor: advancedMode ? theme.accent : (isDarkMode ? "#3a3a3a" : "#d1d1d6") },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      styles.switchThumb,
+                      { transform: [{ translateX: advancedMode ? 22 : 2 }] },
+                    ]}
+                  />
+                </TouchableOpacity>
+              }
+            />
+          </View>
+        </AnimatedRow>
+
         {/* ── LANGUAGE ── */}
         <AnimatedRow delay={120}>
           <SectionHeader label={t(language, "language")} theme={theme} sz={sz} />
@@ -321,4 +355,23 @@ const styles = StyleSheet.create({
   segmented: { flexDirection: "row", padding: 3, borderRadius: 10, gap: 2 },
   segBtn: { width: 34, height: 28, borderRadius: 7, justifyContent: "center", alignItems: "center" },
   segBtnText: { fontSize: 13, fontWeight: "800" },
+
+  // Switch
+  switchTrack: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  switchThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
 });

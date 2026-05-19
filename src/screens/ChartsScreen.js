@@ -50,10 +50,21 @@ export default function ChartsScreen() {
   const [chartType, setChartType] = useState("expense");
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const [selectedWeek, setSelectedWeek] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 0 }),
+  );
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const { isGuest, isDarkMode, currency, user, colorTheme, textSize, language, isOnline } = useStore();
+  const {
+    isGuest,
+    isDarkMode,
+    currency,
+    user,
+    colorTheme,
+    textSize,
+    language,
+    isOnline,
+  } = useStore();
 
   const theme = {
     ...buildTheme(isDarkMode, colorTheme),
@@ -66,7 +77,9 @@ export default function ChartsScreen() {
     try {
       let userId = user?.id;
       if (!userId) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         userId = session?.user?.id;
       }
       if (!userId) {
@@ -294,22 +307,35 @@ export default function ChartsScreen() {
       {/* HEADER */}
       <View style={[styles.header, { backgroundColor: theme.bg }]}>
         <View style={styles.headerTopRow}>
-          <Text style={[styles.headerTitle, { color: theme.text, fontSize: 26 * sz }]}>
+          <Text
+            style={[
+              styles.headerTitle,
+              { color: theme.text, fontSize: 26 * sz },
+            ]}
+          >
             {t(language, "analytics")}
           </Text>
         </View>
         <View style={{ alignItems: "center" }}>
           {viewMode === "month" ? (
             <TouchableOpacity
-              style={[styles.periodPill, { backgroundColor: theme.accent + "20" }]}
+              style={[
+                styles.periodPill,
+                { backgroundColor: theme.accent + "20" },
+              ]}
               onPress={() => setPickerVisible(true)}
             >
-              <Text style={[styles.periodPillText, { color: theme.accent }]}>{periodLabel}</Text>
+              <Text style={[styles.periodPillText, { color: theme.accent }]}>
+                {periodLabel}
+              </Text>
               <Ionicons name="chevron-down" size={14} color={theme.accent} />
             </TouchableOpacity>
           ) : viewMode === "week" ? (
             <TouchableOpacity
-              style={[styles.periodPill, { backgroundColor: theme.accent + "20" }]}
+              style={[
+                styles.periodPill,
+                { backgroundColor: theme.accent + "20" },
+              ]}
               onPress={() => setPickerVisible(true)}
             >
               <Text style={[styles.periodPillText, { color: theme.accent }]}>
@@ -321,7 +347,10 @@ export default function ChartsScreen() {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.periodPill, { backgroundColor: theme.accent + "20" }]}
+              style={[
+                styles.periodPill,
+                { backgroundColor: theme.accent + "20" },
+              ]}
               onPress={() => setPickerVisible(true)}
             >
               <Text style={[styles.periodPillText, { color: theme.accent }]}>
@@ -377,9 +406,20 @@ export default function ChartsScreen() {
       </View>
 
       {/* SUMMARY ROW */}
-      <View style={[styles.summaryRow, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
+      <View
+        style={[
+          styles.summaryRow,
+          {
+            backgroundColor: theme.surface,
+            borderWidth: 1,
+            borderColor: theme.border,
+          },
+        ]}
+      >
         <View style={styles.summaryCol}>
-          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>{t(language, "income")}</Text>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>
+            {t(language, "income")}
+          </Text>
           <Text
             style={[styles.summaryVal, { color: "#2ECC71", fontSize: 15 * sz }]}
             numberOfLines={1}
@@ -391,7 +431,9 @@ export default function ChartsScreen() {
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>{t(language, "expense")}</Text>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>
+            {t(language, "expense")}
+          </Text>
           <Text
             style={[styles.summaryVal, { color: "#FF6B6B", fontSize: 15 * sz }]}
             numberOfLines={1}
@@ -403,9 +445,14 @@ export default function ChartsScreen() {
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>{t(language, "balance")}</Text>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>
+            {t(language, "balance")}
+          </Text>
           <Text
-            style={[styles.summaryVal, { color: theme.text, fontSize: 15 * sz }]}
+            style={[
+              styles.summaryVal,
+              { color: theme.text, fontSize: 15 * sz },
+            ]}
             numberOfLines={1}
           >
             {netBalance >= 0 ? "+" : "-"}
@@ -422,14 +469,33 @@ export default function ChartsScreen() {
         contentContainerStyle={{ paddingTop: 0 }}
       >
         {/* PIE CHART SECTION */}
-        <View style={[styles.chartCard, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
+        <View
+          style={[
+            styles.chartCard,
+            {
+              backgroundColor: theme.surface,
+              borderWidth: 1,
+              borderColor: theme.border,
+            },
+          ]}
+        >
           {/* Chart Header */}
           <View style={styles.chartHeaderRow}>
             <View>
-              <Text style={[styles.chartTitle, { color: theme.text, fontSize: 16 * sz }]}>
+              <Text
+                style={[
+                  styles.chartTitle,
+                  { color: theme.text, fontSize: 16 * sz },
+                ]}
+              >
                 {chartType === "expense" ? "Expense" : "Income"} Breakdown
               </Text>
-              <Text style={[styles.chartSub, { color: theme.subText, fontSize: 11 * sz }]}>
+              <Text
+                style={[
+                  styles.chartSub,
+                  { color: theme.subText, fontSize: 11 * sz },
+                ]}
+              >
                 Top categories this period
               </Text>
             </View>
@@ -634,13 +700,19 @@ export default function ChartsScreen() {
                         />
                         <View style={{ flex: 1 }}>
                           <Text
-                            style={[styles.legendName, { color: theme.text, fontSize: 12 * sz }]}
+                            style={[
+                              styles.legendName,
+                              { color: theme.text, fontSize: 12 * sz },
+                            ]}
                             numberOfLines={1}
                           >
                             {item.label}
                           </Text>
                           <Text
-                            style={[styles.legendPct, { color: theme.subText, fontSize: 11 * sz }]}
+                            style={[
+                              styles.legendPct,
+                              { color: theme.subText, fontSize: 11 * sz },
+                            ]}
                           >
                             {pct}%
                           </Text>
@@ -802,22 +874,35 @@ export default function ChartsScreen() {
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text
-                    style={[styles.txCategory, { color: theme.text, fontSize: 14 * sz }]}
+                    style={[
+                      styles.txCategory,
+                      { color: theme.text, fontSize: 14 * sz },
+                    ]}
                     numberOfLines={1}
                   >
                     {tx.sub_category || tx.parent_category}
                   </Text>
-                  <Text style={[styles.txDate, { color: theme.subText, fontSize: 11 * sz }]}>
+                  <Text
+                    style={[
+                      styles.txDate,
+                      { color: theme.subText, fontSize: 11 * sz },
+                    ]}
+                  >
                     {tx.notes
                       ? tx.notes
-                      : format(new Date(tx.created_at), "MMM d · h:mm a")}
+                      : tx.custom_created_at
+                        ? `Custom Date · Added ${format(new Date(tx.custom_created_at), "MMM d, yyyy")}`
+                        : format(new Date(tx.created_at), "MMM d · h:mm a")}
                   </Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text
                     style={[
                       styles.txAmount,
-                      { color: tx.type === "income" ? "#2ECC71" : "#FF6B6B", fontSize: 13 * sz },
+                      {
+                        color: tx.type === "income" ? "#2ECC71" : "#FF6B6B",
+                        fontSize: 13 * sz,
+                      },
                     ]}
                   >
                     {tx.type === "income" ? "+" : "-"}
