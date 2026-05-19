@@ -24,8 +24,14 @@ export const useStore = create(
       // --- SETTINGS STATE ---
       isDarkMode: true,
       currency: "₱",
+      language: "english",
+      textSize: "medium",
+      colorTheme: "blue",
       toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
       setCurrency: (cur) => set({ currency: cur }),
+      setLanguage: (lang) => set({ language: lang }),
+      setTextSize: (size) => set({ textSize: size }),
+      setColorTheme: (theme) => set({ colorTheme: theme }),
 
       // --- DATA STATE ---
       transactions: [],

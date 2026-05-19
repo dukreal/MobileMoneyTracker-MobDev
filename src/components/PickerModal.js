@@ -57,9 +57,10 @@ export default function PickerModal({
   currentValue,
   onSelect,
   isDarkMode,
+  accentColor = "#0081db",
 }) {
   const insets = useSafeAreaInsets();
-  const activeBlue = "#0081db";
+  const activeBlue = accentColor;
   const [viewDate, setViewDate] = useState(new Date());
   const [localSelected, setLocalSelected] = useState(null);
   const [localMonth, setLocalMonth] = useState(null);

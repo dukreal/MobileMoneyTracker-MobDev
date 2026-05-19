@@ -1,18 +1,19 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "../../src/store/useStore";
+import { ACCENT_COLORS } from "../../src/constants/settings";
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 
-function AddButton({ onPress, isDarkMode }) {
+function AddButton({ onPress, accentColor }) {
   return (
     <TouchableOpacity
       style={styles.addButtonWrapper}
       onPress={onPress}
       activeOpacity={0.85}
     >
-      <View style={styles.addButton}>
+      <View style={[styles.addButton, { backgroundColor: accentColor, shadowColor: accentColor }]}>
         <Ionicons name="add" size={32} color="#fff" />
       </View>
     </TouchableOpacity>
@@ -20,7 +21,8 @@ function AddButton({ onPress, isDarkMode }) {
 }
 
 export default function TabsLayout() {
-  const { isDarkMode } = useStore();
+  const { isDarkMode, colorTheme } = useStore();
+  const accentColor = ACCENT_COLORS[colorTheme] ?? "#3B7DD8";
   const insets = useSafeAreaInsets();
 
   const bgColor = isDarkMode ? "#121212" : "#ffffff";
@@ -45,11 +47,11 @@ export default function TabsLayout() {
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: textColor,
+        tabBarActiveTintColor: accentColor,
         tabBarInactiveTintColor: "gray",
         tabBarStyle: {
-          backgroundColor: isDarkMode ? "#1a1a1a" : "#f5f5f5",
-          borderTopColor: isDarkMode ? "#333" : "#eee",
+          backgroundColor: isDarkMode ? "#1a1a1a" : "#ffffff",
+          borderTopColor: isDarkMode ? "#333" : "#d8d8d4",
           elevation: 0,
           borderTopWidth: 1,
           height: tabBarHeight,
@@ -68,7 +70,7 @@ export default function TabsLayout() {
           tabBarIcon: () => null,
           tabBarLabel: () => null,
           tabBarButton: (props) => (
-            <AddButton {...props} isDarkMode={isDarkMode} />
+            <AddButton {...props} accentColor={accentColor} />
           ),
         }}
       />
@@ -89,10 +91,8 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: "#4A90E2",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#4A90E2",
     shadowOffset: { width: 0, height: 8 },  
     shadowOpacity: 0.6,
     shadowRadius: 12,

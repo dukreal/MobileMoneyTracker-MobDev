@@ -31,6 +31,7 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import PickerModal from "../components/PickerModal";
+import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 
 const MONTHS = [
   "Jan",
@@ -109,7 +110,9 @@ function TransactionItem({
 
 // --- 3. MAIN HOME SCREEN ---
 export default function HomeScreen() {
-  const { currency, isGuest, isDarkMode, user, session } = useStore();
+  const { currency, isGuest, isDarkMode, colorTheme, textSize, language, user, session } = useStore();
+  const theme = buildTheme(isDarkMode, colorTheme);
+  const ts = TEXT_SIZE_MULTIPLIER[textSize] ?? 1;
 
   // States
   const [transactions, setTransactions] = useState([]);
@@ -122,15 +125,6 @@ export default function HomeScreen() {
   const selectionSource = useRef("system");
   const ITEM_WIDTH = 63;
   const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-  const theme = {
-    bg: isDarkMode ? "#121212" : "#ffffff",
-    card: isDarkMode ? "#1e1e1e" : "#f9f9f9",
-    text: isDarkMode ? "#ffffff" : "#000000",
-    border: isDarkMode ? "#2c2c2c" : "#f0f0f0",
-    subText: isDarkMode ? "#888888" : "#8e8e93",
-    chipUnselected: isDarkMode ? "#1a1a1a" : "#f5f5f5",
-  };
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -208,8 +202,8 @@ export default function HomeScreen() {
       <View style={styles.headerContainer}>
         {/* Row 1 — App Name */}
         <View style={styles.appNameRow}>
-          <Text style={[styles.appNameText, { color: theme.text }]}>
-            Montra
+          <Text style={[styles.appNameText, { color: theme.text, fontSize: 26 * ts }]}>
+            {t(language, "appName")}
           </Text>
         </View>
 
@@ -219,13 +213,13 @@ export default function HomeScreen() {
           {/* Center — Month pill (absolutely centered) */}
           <View style={{ position: "absolute", left: 0, right: 0, alignItems: "center", zIndex: 0 }}>
             <TouchableOpacity
-              style={styles.monthDisplayRow}
+              style={[styles.monthDisplayRow, { backgroundColor: theme.accent + "20" }]}
               onPress={() => setCalendarVisible(true)}
             >
-              <Text style={[styles.monthLargeText, { color: "#4A90E2" }]}>
+              <Text style={[styles.monthLargeText, { color: theme.accent, fontSize: 15 * ts }]}>
                 {format(selectedDate, "MMMM yyyy")}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#4A90E2" />
+              <Ionicons name="chevron-down" size={14} color={theme.accent} />
             </TouchableOpacity>
           </View>
 
@@ -241,7 +235,7 @@ export default function HomeScreen() {
               <Ionicons name="share-outline" size={20} color={theme.text} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => {}}
+              onPress={() => router.push("/settings")}
               style={[
                 styles.circleIconBtn,
                 { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
@@ -268,7 +262,7 @@ export default function HomeScreen() {
                 style={[
                   styles.dateItem,
                   isSelected && {
-                    backgroundColor: isDarkMode ? "#fff" : "#000",
+                    backgroundColor: theme.accent,
                   },
                 ]}
                 onPress={() => {
@@ -280,11 +274,7 @@ export default function HomeScreen() {
                   style={[
                     styles.dateDay,
                     {
-                      color: isSelected
-                        ? isDarkMode
-                          ? "#000"
-                          : "#fff"
-                        : theme.subText,
+                      color: isSelected ? "#fff" : theme.subText,
                     },
                   ]}
                 >
@@ -294,11 +284,7 @@ export default function HomeScreen() {
                   style={[
                     styles.dateNum,
                     {
-                      color: isSelected
-                        ? isDarkMode
-                          ? "#000"
-                          : "#fff"
-                        : theme.text,
+                      color: isSelected ? "#fff" : theme.text,
                     },
                   ]}
                 >
@@ -313,22 +299,22 @@ export default function HomeScreen() {
       {/* SUMMARY */}
       <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
        <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>Income</Text>
-          <Text style={[styles.summaryVal, { color: "#2ECC71" }]}>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>{t(language, "income")}</Text>
+          <Text style={[styles.summaryVal, { color: "#2ECC71", fontSize: 15 * ts }]}>
             +{currency}
             {income.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>Expense</Text>
-          <Text style={[styles.summaryVal, { color: "#FF6B6B" }]}>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>{t(language, "expense")}</Text>
+          <Text style={[styles.summaryVal, { color: "#FF6B6B", fontSize: 15 * ts }]}>
             -{currency}
             {expense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>Balance</Text>
-          <Text style={[styles.summaryVal, { color: theme.text }]}>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * ts }]}>{t(language, "balance")}</Text>
+          <Text style={[styles.summaryVal, { color: theme.text, fontSize: 15 * ts }]}>
             {income - expense >= 0 ? "" : "-"}{currency}
             {Math.abs(income - expense).toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </Text>
@@ -365,7 +351,7 @@ export default function HomeScreen() {
               color={isDarkMode ? "#222" : "#e0e0e0"}
             />
             <Text style={[styles.emptyText, { color: theme.subText }]}>
-              No records for this day
+              {t(language, "noRecords")}
             </Text>
           </View>
         }
@@ -392,6 +378,7 @@ export default function HomeScreen() {
           setSelectedDate(startOfDay(date));
         }}
         isDarkMode={isDarkMode}
+        accentColor={theme.accent}
       />
     </View>
   );
@@ -413,7 +400,6 @@ const styles = StyleSheet.create({
   monthDisplayRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#4A90E220",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
@@ -455,6 +441,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderRadius: 15,
     borderWidth: 1,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   txTitle: { fontWeight: "bold", fontSize: 14 },
   txNote: { fontSize: 12 },

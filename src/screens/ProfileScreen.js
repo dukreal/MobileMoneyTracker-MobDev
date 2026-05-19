@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Switch,
   ScrollView,
   Alert,
   Animated,
@@ -140,7 +139,6 @@ export default function ProfileScreen() {
     currency,
     setCurrency,
     isDarkMode,
-    toggleDarkMode,
     logout,
     session,
     setSession,
@@ -380,23 +378,6 @@ export default function ProfileScreen() {
         <AnimatedRow delay={180}>
           <SectionHeader label="Preferences" theme={theme} />
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <SettingItem
-              icon="moon-outline"
-              iconBg="#7C3AED15"
-              iconColor="#7C3AED"
-              label="Dark Mode"
-              theme={theme}
-              borderBottom
-              right={
-                <Switch
-                  value={isDarkMode}
-                  onValueChange={toggleDarkMode}
-                  trackColor={{ false: theme.border, true: theme.accent }}
-                  thumbColor="#fff"
-                  ios_backgroundColor={theme.border}
-                />
-              }
-            />
             <SettingItem
               icon="cash-outline"
               iconBg={theme.success + "15"}
