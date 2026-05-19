@@ -13,10 +13,11 @@ export const useStore = create(
       isGuest: true,
 
       setSession: (session) => {
+        console.log("setSession called, is_anonymous:", session?.user?.is_anonymous);
         set({
           session,
           user: session?.user || null,
-          isGuest: session?.user?.is_anonymous ?? true,
+          isGuest: session?.user?.is_anonymous ?? (session === null ? true : false),
         });
       },
 

@@ -24,6 +24,7 @@ export default function LoginScreen() {
     const handleDeepLink = async ({ url }) => {
       if (!url) return;
       console.log("Deep link received:", url);
+      if (url.includes("error_code=")) return;
 
       // Extract code or tokens from URL
       const urlObj = new URL(url);
@@ -45,7 +46,28 @@ export default function LoginScreen() {
         console.log("Got tokens, setting session...");
         const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
         if (error) { Alert.alert("Login Error", error.message); setLoading(false); return; }
-        setSession(data.session);
+
+        const newSession = data.session;
+        console.log("New session is_anonymous:", newSession?.user?.is_anonymous);
+        console.log("New session user id:", newSession?.user?.id);
+
+        // Run pending migration if guest was syncing
+        const AsyncStorage = require("@react-native-async-storage/async-storage").default;
+        const pendingOldUserId = await AsyncStorage.getItem("pending_migration_user_id");
+        const newUserId = newSession?.user?.id;
+        if (pendingOldUserId && newUserId && pendingOldUserId !== newUserId) {
+          console.log("Running migration:", pendingOldUserId, "->", newUserId);
+          await supabase.rpc("migrate_transactions", {
+            old_user_id: pendingOldUserId,
+            new_user_id: newUserId,
+          });
+          await AsyncStorage.removeItem("pending_migration_user_id");
+        }
+
+        // Force clear old anonymous session from AsyncStorage before setting new one
+        await AsyncStorage.removeItem("supabase.auth.token");
+
+        setSession(newSession);
         setLoading(false);
         return;
       }

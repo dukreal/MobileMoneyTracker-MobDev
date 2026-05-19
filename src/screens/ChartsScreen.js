@@ -92,7 +92,7 @@ export default function ChartsScreen() {
     useCallback(() => {
       fetchTransactions();
       setSelectedSlice(null);
-    }, []),
+    }, [fetchTransactions]),
   );
 
   const filteredTxs = useMemo(() => {

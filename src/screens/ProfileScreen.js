@@ -229,31 +229,98 @@ export default function ProfileScreen() {
   };
 
   const handleMergeGoogle = async () => {
-    try {
-      const redirectUri = "https://auth.expo.io/@dukdakdok/MobileMoneyTracker";
-      const { data, error } = await supabase.auth.linkIdentity({
-        provider: "google",
-        options: { redirectTo: redirectUri, queryParams: { prompt: "select_account" } },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
-        if (result.type === "success") {
-          const { data: { session: newSession } } = await supabase.auth.refreshSession();
-          if (newSession && !newSession.user.is_anonymous) {
-            setSession(newSession);
-            Alert.alert("Linked!", "Your Google account is now connected.");
+    const oldUserId = session?.user?.id;
+
+    const doSignInWithGoogle = async () => {
+      try {
+        const { data: anonTxs } = await supabase
+          .from("transactions")
+          .select("id")
+          .eq("user_id", oldUserId);
+        const hasGuestTransactions = anonTxs && anonTxs.length > 0;
+
+        // Save oldUserId to AsyncStorage so LoginScreen's deep link handler
+        // can't beat us to the migration
+        const AsyncStorage = require("@react-native-async-storage/async-storage").default;
+        if (hasGuestTransactions && oldUserId) {
+          await AsyncStorage.setItem("pending_migration_user_id", oldUserId);
+        }
+
+        const redirectUri = "com.moneytracker.app://";
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: redirectUri, queryParams: { prompt: "select_account" } },
+        });
+        if (error) throw error;
+        if (data?.url) {
+          const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
+          if (result.type === "success" && result.url) {
+            const url = result.url;
+            const fragment = url.split("#")[1] || "";
+            const query = url.split("?")[1]?.split("#")[0] || "";
+            const params = new URLSearchParams(fragment || query);
+            const code = new URLSearchParams(query).get("code") || params.get("code");
+            const access_token = params.get("access_token");
+            const refresh_token = params.get("refresh_token");
+
+            let newSession = null;
+            if (code) {
+              const { data: ex, error: ee } = await supabase.auth.exchangeCodeForSession(code);
+              if (ee) throw ee;
+              newSession = ex.session;
+            } else if (access_token && refresh_token) {
+              const { data: sd, error: se } = await supabase.auth.setSession({ access_token, refresh_token });
+              if (se) throw se;
+              newSession = sd.session;
+            } else {
+              const { data: { session: refreshed } } = await supabase.auth.refreshSession();
+              newSession = refreshed;
+            }
+
+            if (newSession) {
+              const newUserId = newSession.user.id;
+              console.log("=== MIGRATION DEBUG ===");
+              console.log("oldUserId:", oldUserId);
+              console.log("newUserId:", newUserId);
+              console.log("hasGuestTransactions:", hasGuestTransactions);
+              console.log("anonTxs:", JSON.stringify(anonTxs));
+              if (hasGuestTransactions && oldUserId && oldUserId !== newUserId) {
+                const { error: migrationError, data: migrationData } = await supabase.rpc("migrate_transactions", {
+                  old_user_id: oldUserId,
+                  new_user_id: newUserId,
+                });
+                console.log("Migration result:", migrationData, migrationError?.message);
+              } else {
+                console.log("Migration skipped - reason:", !hasGuestTransactions ? "no guest transactions" : oldUserId === newUserId ? "same user" : "no oldUserId");
+              }
+              setSession(newSession);
+              Alert.alert("Synced!", "Signed in and all your transactions have been moved to your Google account.");
+            }
           }
         }
+      } catch (e) {
+        Alert.alert("Error", e.message);
       }
-    } catch (error) {
-      Alert.alert("Link Error", error.message);
-    }
+    };
+
+    // Skip linkIdentity entirely — go straight to sign in + migrate
+    Alert.alert(
+      "Link Google Account",
+      "Sign in with Google to save your data to the cloud. Your existing transactions will be synced.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign In & Sync", onPress: doSignInWithGoogle },
+      ]
+    );
   };
+
+  const displayName = isGuest
+    ? "Guest User"
+    : session?.user?.user_metadata?.full_name ?? session?.user?.email ?? "User";
 
   const initials = isGuest
     ? "G"
-    : (session?.user?.email?.[0] ?? "?").toUpperCase();
+    : (session?.user?.user_metadata?.full_name?.[0] ?? session?.user?.email?.[0] ?? "?").toUpperCase();
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
@@ -286,7 +353,7 @@ export default function ProfileScreen() {
 
             <View style={styles.avatarInfo}>
               <Text style={[styles.avatarName, { color: theme.text }]} numberOfLines={1}>
-                {isGuest ? "Guest User" : session?.user?.email}
+                {displayName}
               </Text>
               <View style={[styles.badge, { backgroundColor: isGuest ? theme.danger + "12" : theme.success + "12" }]}>
                 <View style={[styles.badgeDot, { backgroundColor: isGuest ? theme.danger : theme.success }]} />

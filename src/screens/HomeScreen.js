@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  ActivityIndicator,  
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "../supabase/supabaseClient";
@@ -108,11 +109,12 @@ function TransactionItem({
 
 // --- 3. MAIN HOME SCREEN ---
 export default function HomeScreen() {
-  const { currency, isGuest, isDarkMode, user } = useStore();
+  const { currency, isGuest, isDarkMode, user, session } = useStore();
 
   // States
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [calendarVisible, setCalendarVisible] = useState(false);
 
@@ -131,6 +133,7 @@ export default function HomeScreen() {
   };
 
   const fetchTransactions = useCallback(async () => {
+    setLoading(true);
     let userId = user?.id;
     if (!userId) {
       const { data: { session } } = await supabase.auth.getSession();
@@ -143,6 +146,7 @@ export default function HomeScreen() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (!error && data) setTransactions(data);
+    setLoading(false);
   }, [user?.id]);
 
   const onRefresh = useCallback(async () => {
@@ -154,8 +158,12 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchTransactions();
-    }, []),
+    }, [fetchTransactions]),
   );
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [user?.id, session?.user?.id]);
 
   // Auto-scroll
   const daysInMonth = useMemo(
@@ -327,8 +335,14 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <FlatList
-        data={filteredTransactions}
+      <View style={{ flex: 1 }}>
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="large" color={isDarkMode ? "#fff" : "#000"} />
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTransactions}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
@@ -365,6 +379,8 @@ export default function HomeScreen() {
           />
         )}
       />
+        )}
+      </View>
 
       <PickerModal
         visible={calendarVisible}
