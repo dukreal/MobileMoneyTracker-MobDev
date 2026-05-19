@@ -46,6 +46,10 @@ const translations = {
     notes:         "Notes",
     category:      "Category",
     save:          "Save",
+    searchPlace:       "Search a place...",
+    fetchingLocation:  "Fetching your location...",
+    confirmLocation:   "Confirm Location",
+    pickLocation:      "Pick Location",
     // Profile
     profile:       "Profile",
     guestUser:     "Guest User",
@@ -87,6 +91,10 @@ const translations = {
     notes:         "Mga Tala",
     category:      "Kategorya",
     save:          "I-save",
+    searchPlace:       "Maghanap ng lugar...",
+    fetchingLocation:  "Kinukuha ang iyong lokasyon...",
+    confirmLocation:   "Kumpirmahin ang Lokasyon",
+    pickLocation:      "Pumili ng Lokasyon",
     // Profile
     profile:       "Profile",
     guestUser:     "Bisita",

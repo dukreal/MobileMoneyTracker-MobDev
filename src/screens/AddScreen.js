@@ -13,10 +13,11 @@ import {
   Animated,
 } from "react-native";
 import LocationPickerModal from "../components/LocationPickerModal";
+import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import * as FileSystem from "expo-file-system/legacy"; // FIXED IMPORT
+import * as FileSystem from "expo-file-system/legacy";
 import { decode } from "base64-arraybuffer";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
@@ -26,7 +27,7 @@ import { useFocusEffect, router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function AddScreen() {
-  const { isDarkMode, user, currency } = useStore();
+  const { isDarkMode, user, currency, colorTheme, textSize, language } = useStore();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [inputKey, setInputKey] = useState(0);
@@ -86,12 +87,12 @@ export default function AddScreen() {
   const [previewImage, setPreviewImage] = useState(null);
 
   const theme = {
-    bg: isDarkMode ? "#121212" : "#fff",
-    text: isDarkMode ? "#fff" : "#000",
-    card: isDarkMode ? "#1E1E1E" : "#f9f9f9",
-    inputBorder: isDarkMode ? "#333" : "#eee",
-    placeholder: isDarkMode ? "#777" : "#999",
+    ...buildTheme(isDarkMode, colorTheme),
+    get card()        { return this.surface; },
+    get inputBorder() { return this.border; },
+    get placeholder() { return this.subText; },
   };
+  const textScale = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
 
   const handleGetLocation = () => {
     setLocationModalVisible(true);
@@ -258,8 +259,8 @@ export default function AddScreen() {
           },
         ]}
       >
-        <Text style={[styles.heroLabel, { color: theme.text }]}>
-          Add Transaction
+        <Text style={[styles.heroLabel, { color: theme.text, fontSize: 26 * textScale }]}>
+          {t(language, "addTransaction")}
         </Text>
 
         {/* Type Toggle */}
@@ -280,10 +281,10 @@ export default function AddScreen() {
             <Text
               style={[
                 styles.heroToggleText,
-                { color: type === "expense" ? "#FF6B6B" : "#999" },
+                { color: type === "expense" ? "#FF6B6B" : "#999", fontSize: 13 * textScale },
               ]}
             >
-              Expense
+              {t(language, "expense")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -302,10 +303,10 @@ export default function AddScreen() {
             <Text
               style={[
                 styles.heroToggleText,
-                { color: type === "income" ? "#2ECC71" : "#999" },
+                { color: type === "income" ? "#2ECC71" : "#999", fontSize: 13 * textScale },
               ]}
             >
-              Income
+              {t(language, "income")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -325,7 +326,7 @@ export default function AddScreen() {
             ref={amountRef}
             style={[
               styles.heroAmountInput,
-              { color: type === "expense" ? "#FF6B6B" : "#2ECC71" },
+              { color: type === "expense" ? "#FF6B6B" : "#2ECC71", fontSize: 42 * textScale },
             ]}
             textAlign="center"
             placeholder="0.00"
@@ -343,14 +344,14 @@ export default function AddScreen() {
         <TextInput
           style={[
             styles.notesInput,
-            { color: theme.text, borderColor: theme.inputBorder },
+            { color: theme.text, borderColor: theme.inputBorder, fontSize: 15 * textScale },
           ]}
-          placeholder="Add a note..."
+          placeholder={t(language, "notes")}
           placeholderTextColor={theme.placeholder}
           value={notes}
           onChangeText={setNotes}
         />
-        <Text style={[styles.label, { color: theme.text }]}>Category</Text>
+        <Text style={[styles.label, { color: theme.text, fontSize: 14 * textScale }]}>{t(language, "category")}</Text>
 
         {/* Selected category display — always visible */}
         {selectedCat ? (
@@ -482,29 +483,29 @@ export default function AddScreen() {
                 styles.locationOptionBtn,
                 {
                   backgroundColor:
-                    locationOption === "current" ? "#4A90E222" : theme.card,
+                    locationOption === "current" ? theme.accent + "22" : theme.card,
                   borderColor:
                     locationOption === "current"
-                      ? "#4A90E2"
+                      ? theme.accent
                       : theme.inputBorder,
                   flex: 1,
                 },
               ]}
             >
               {fetchingLoc ? (
-                <ActivityIndicator size="small" color="#4A90E2" />
+                <ActivityIndicator size="small" color={theme.accent} />
               ) : (
                 <Ionicons
                   name="navigate"
                   size={16}
                   color={
-                    locationOption === "current" ? "#4A90E2" : theme.placeholder
+                    locationOption === "current" ? theme.accent : theme.placeholder
                   }
                 />
               )}
               <Text
                 style={{
-                  color: locationOption === "current" ? "#4A90E2" : theme.text,
+                  color: locationOption === "current" ? theme.accent : theme.text,
                   fontSize: 13,
                   marginLeft: 6,
                   fontWeight: "600",
@@ -523,9 +524,9 @@ export default function AddScreen() {
                 styles.locationOptionBtn,
                 {
                   backgroundColor:
-                    locationOption === "map" ? "#4A90E222" : theme.card,
+                    locationOption === "map" ? theme.accent + "22" : theme.card,
                   borderColor:
-                    locationOption === "map" ? "#4A90E2" : theme.inputBorder,
+                    locationOption === "map" ? theme.accent : theme.inputBorder,
                   flex: 1,
                 },
               ]}
@@ -533,11 +534,11 @@ export default function AddScreen() {
               <Ionicons
                 name="map"
                 size={16}
-                color={locationOption === "map" ? "#4A90E2" : theme.placeholder}
+                color={locationOption === "map" ? theme.accent : theme.placeholder}
               />
               <Text
                 style={{
-                  color: locationOption === "map" ? "#4A90E2" : theme.text,
+                  color: locationOption === "map" ? theme.accent : theme.text,
                   fontSize: 13,
                   marginLeft: 6,
                   fontWeight: "600",
@@ -553,10 +554,10 @@ export default function AddScreen() {
             <View
               style={[
                 styles.locationResult,
-                { backgroundColor: theme.card, borderColor: "#4A90E244" },
+                { backgroundColor: theme.card, borderColor: theme.accent + "44" },
               ]}
             >
-              <Ionicons name="location" size={16} color="#4A90E2" />
+              <Ionicons name="location" size={16} color={theme.accent} />
               <Text
                 style={{
                   color: theme.text,
@@ -658,9 +659,9 @@ export default function AddScreen() {
           <ActivityIndicator color={isDarkMode ? "#000" : "#fff"} />
         ) : (
           <Text
-            style={{ color: isDarkMode ? "#000" : "#fff", fontWeight: "bold" }}
+            style={{ color: isDarkMode ? "#000" : "#fff", fontWeight: "bold", fontSize: 16 * textScale }}
           >
-            Save Transaction
+            {t(language, "save")}
           </Text>
         )}
       </TouchableOpacity>
@@ -785,6 +786,9 @@ export default function AddScreen() {
           setLocationOption("map");
         }}
         isDarkMode={isDarkMode}
+        colorTheme={colorTheme}
+        textSize={textSize}
+        language={language}
       />
 
       <Modal visible={!!previewImage} transparent animationType="fade">

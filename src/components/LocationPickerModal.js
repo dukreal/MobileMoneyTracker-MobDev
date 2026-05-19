@@ -14,8 +14,9 @@ import {
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 
-const MAP_HTML = (lat, lng) => `
+const MAP_HTML = (lat, lng, accentColor = "#4A90E2") => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -40,7 +41,7 @@ const MAP_HTML = (lat, lng) => `
     const pinIcon = L.divIcon({
       html: \`<div style="
         width: 22px; height: 22px;
-        background: #4A90E2;
+        background: ${accentColor};
         border: 3px solid #fff;
         border-radius: 50% 50% 50% 0;
         transform: rotate(-45deg);
@@ -90,6 +91,9 @@ export default function LocationPickerModal({
   onClose,
   onConfirm,
   isDarkMode,
+  colorTheme,
+  textSize,
+  language,
 }) {
   const insets = useSafeAreaInsets();
   const [initialCoords, setInitialCoords] = useState(null);
@@ -107,15 +111,24 @@ export default function LocationPickerModal({
   const searchDebounceRef = useRef(null);
 
   const theme = {
-    bg: isDarkMode ? "#121212" : "#fff",
-    card: isDarkMode ? "#1E1E1E" : "#f0f0f0",
-    card2: isDarkMode ? "#2a2a2a" : "#fff",
-    text: isDarkMode ? "#fff" : "#000",
-    subText: isDarkMode ? "#aaa" : "#555",
-    inputBorder: isDarkMode ? "#333" : "#e0e0e0",
-    placeholder: isDarkMode ? "#777" : "#999",
-    divider: isDarkMode ? "#333" : "#f0f0f0",
+    ...buildTheme(isDarkMode, colorTheme),
+    get card() {
+      return this.surface;
+    },
+    get card2() {
+      return this.surfaceAlt;
+    },
+    get inputBorder() {
+      return this.border;
+    },
+    get placeholder() {
+      return this.subText;
+    },
+    get divider() {
+      return this.border;
+    },
   };
+  const textScale = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
 
   useEffect(() => {
     if (visible) fetchCurrentLocation();
@@ -377,14 +390,14 @@ export default function LocationPickerModal({
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
       <View style={[styles.container, { backgroundColor: theme.bg }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: theme.inputBorder }]}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={theme.text} />
+        <View style={[styles.header, { borderBottomColor: theme.border ?? theme.inputBorder, paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity onPress={handleClose} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color={theme.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Pick Location
+            {t(language, "pickLocation")}
           </Text>
-          <View style={{ width: 40 }} />
+          <View style={{ width: 36 }} />
         </View>
 
         {/* Search + Suggestions */}
@@ -398,7 +411,7 @@ export default function LocationPickerModal({
             <Ionicons name="search" size={18} color={theme.placeholder} />
             <TextInput
               style={[styles.searchInput, { color: theme.text }]}
-              placeholder="Search a place..."
+              placeholder={t(language, "searchPlace")}
               placeholderTextColor={theme.placeholder}
               value={searchText}
               onChangeText={handleSearchChange}
@@ -406,7 +419,7 @@ export default function LocationPickerModal({
               autoCorrect={false}
             />
             {searching ? (
-              <ActivityIndicator size="small" color="#4A90E2" />
+              <ActivityIndicator size="small" color={theme.accent} />
             ) : searchText.length > 0 ? (
               <TouchableOpacity
                 onPress={() => {
@@ -472,7 +485,7 @@ export default function LocationPickerModal({
                     <Ionicons
                       name="location-outline"
                       size={16}
-                      color="#4A90E2"
+                      color={theme.accent}
                       style={{ marginTop: 2 }}
                     />
                     <View style={{ flex: 1, marginLeft: 10 }}>
@@ -504,16 +517,16 @@ export default function LocationPickerModal({
         {/* Map */}
         {loadingLocation || !initialCoords ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4A90E2" />
+            <ActivityIndicator size="large" color={theme.accent} />
             <Text style={[styles.loadingText, { color: theme.subText }]}>
-              Fetching your location...
+              {t(language, "fetchingLocation")}
             </Text>
           </View>
         ) : (
           <WebView
             ref={webviewRef}
             style={styles.map}
-            source={{ html: MAP_HTML(initialCoords.lat, initialCoords.lng) }}
+            source={{ html: MAP_HTML(initialCoords.lat, initialCoords.lng, theme.accent) }}
             onMessage={handleWebViewMessage}
             javaScriptEnabled
             domStorageEnabled
@@ -532,7 +545,11 @@ export default function LocationPickerModal({
         <View
           style={[
             styles.bottomBar,
-            { backgroundColor: theme.bg, borderTopColor: theme.inputBorder, paddingBottom: insets.bottom + 16 },
+            {
+              backgroundColor: theme.bg,
+              borderTopColor: theme.inputBorder,
+              paddingBottom: insets.bottom + 16,
+            },
           ]}
         >
           <View
@@ -540,17 +557,17 @@ export default function LocationPickerModal({
               styles.locationCard,
               {
                 backgroundColor: theme.card,
-                borderColor: isDragging ? theme.inputBorder : "#4A90E244",
+                borderColor: isDragging ? theme.inputBorder : theme.accent + "44",
               },
             ]}
           >
             {loadingPlace ? (
-              <ActivityIndicator size="small" color="#4A90E2" />
+              <ActivityIndicator size="small" color={theme.accent} />
             ) : (
               <Ionicons
                 name={isDragging ? "navigate-outline" : "location"}
                 size={18}
-                color={isDragging ? theme.placeholder : "#4A90E2"}
+                color={isDragging ? theme.placeholder : theme.accent}
               />
             )}
             <Text
@@ -572,6 +589,7 @@ export default function LocationPickerModal({
             style={[
               styles.confirmBtn,
               {
+                backgroundColor: theme.accent,
                 opacity:
                   pinCoords && placeName && !loadingPlace && !isDragging
                     ? 1
@@ -587,7 +605,7 @@ export default function LocationPickerModal({
               color="#fff"
               style={{ marginRight: 6 }}
             />
-            <Text style={styles.confirmBtnText}>Confirm Location</Text>
+            <Text style={[styles.confirmBtnText, { fontSize: 16 * textScale }]}>{t(language, "confirmLocation")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -601,13 +619,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "ios" ? 55 : 20,
-    paddingBottom: 12,
+    paddingBottom: 14,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
-  closeBtn: { width: 40, alignItems: "flex-start" },
-  headerTitle: { fontSize: 17, fontWeight: "700" },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.5 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -666,7 +689,7 @@ const styles = StyleSheet.create({
   },
   placeNameText: { flex: 1, fontSize: 14, fontWeight: "500", lineHeight: 20 },
   confirmBtn: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: "transparent",
     padding: 16,
     borderRadius: 14,
     alignItems: "center",
