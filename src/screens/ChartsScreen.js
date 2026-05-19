@@ -352,6 +352,7 @@ export default function ChartsScreen() {
                   {
                     color: viewMode === mode ? theme.text : theme.subText,
                     fontWeight: viewMode === mode ? "700" : "500",
+                    fontSize: 14 * sz,
                   },
                 ]}
               >
@@ -365,9 +366,9 @@ export default function ChartsScreen() {
       {/* SUMMARY ROW */}
       <View style={[styles.summaryRow, { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border }]}>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>{t(language, "income")}</Text>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>{t(language, "income")}</Text>
           <Text
-            style={[styles.summaryVal, { color: "#2ECC71" }]}
+            style={[styles.summaryVal, { color: "#2ECC71", fontSize: 15 * sz }]}
             numberOfLines={1}
           >
             +{currency}
@@ -377,9 +378,9 @@ export default function ChartsScreen() {
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>{t(language, "expense")}</Text>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>{t(language, "expense")}</Text>
           <Text
-            style={[styles.summaryVal, { color: "#FF6B6B" }]}
+            style={[styles.summaryVal, { color: "#FF6B6B", fontSize: 15 * sz }]}
             numberOfLines={1}
           >
             -{currency}
@@ -389,9 +390,9 @@ export default function ChartsScreen() {
           </Text>
         </View>
         <View style={styles.summaryCol}>
-          <Text style={styles.summaryLabel}>{t(language, "balance")}</Text>
+          <Text style={[styles.summaryLabel, { fontSize: 11 * sz }]}>{t(language, "balance")}</Text>
           <Text
-            style={[styles.summaryVal, { color: theme.text }]}
+            style={[styles.summaryVal, { color: theme.text, fontSize: 15 * sz }]}
             numberOfLines={1}
           >
             {netBalance >= 0 ? "+" : "-"}
@@ -412,10 +413,10 @@ export default function ChartsScreen() {
           {/* Chart Header */}
           <View style={styles.chartHeaderRow}>
             <View>
-              <Text style={[styles.chartTitle, { color: theme.text }]}>
+              <Text style={[styles.chartTitle, { color: theme.text, fontSize: 16 * sz }]}>
                 {chartType === "expense" ? "Expense" : "Income"} Breakdown
               </Text>
-              <Text style={[styles.chartSub, { color: theme.subText }]}>
+              <Text style={[styles.chartSub, { color: theme.subText, fontSize: 11 * sz }]}>
                 Top categories this period
               </Text>
             </View>
@@ -620,13 +621,13 @@ export default function ChartsScreen() {
                         />
                         <View style={{ flex: 1 }}>
                           <Text
-                            style={[styles.legendName, { color: theme.text }]}
+                            style={[styles.legendName, { color: theme.text, fontSize: 12 * sz }]}
                             numberOfLines={1}
                           >
                             {item.label}
                           </Text>
                           <Text
-                            style={[styles.legendPct, { color: theme.subText }]}
+                            style={[styles.legendPct, { color: theme.subText, fontSize: 11 * sz }]}
                           >
                             {pct}%
                           </Text>
@@ -788,12 +789,12 @@ export default function ChartsScreen() {
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text
-                    style={[styles.txCategory, { color: theme.text }]}
+                    style={[styles.txCategory, { color: theme.text, fontSize: 14 * sz }]}
                     numberOfLines={1}
                   >
                     {tx.sub_category || tx.parent_category}
                   </Text>
-                  <Text style={[styles.txDate, { color: theme.subText }]}>
+                  <Text style={[styles.txDate, { color: theme.subText, fontSize: 11 * sz }]}>
                     {tx.notes
                       ? tx.notes
                       : format(new Date(tx.created_at), "MMM d · h:mm a")}
@@ -803,7 +804,7 @@ export default function ChartsScreen() {
                   <Text
                     style={[
                       styles.txAmount,
-                      { color: tx.type === "income" ? "#2ECC71" : "#FF6B6B" },
+                      { color: tx.type === "income" ? "#2ECC71" : "#FF6B6B", fontSize: 13 * sz },
                     ]}
                   >
                     {tx.type === "income" ? "+" : "-"}
