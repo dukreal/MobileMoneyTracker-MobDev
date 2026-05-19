@@ -10,6 +10,7 @@ import {
   Pressable,
 } from "react-native";
 import { useStore } from "../store/useStore";
+import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 import { supabase } from "../supabase/supabaseClient";
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
@@ -139,11 +140,15 @@ export default function ProfileScreen() {
     currency,
     setCurrency,
     isDarkMode,
+    colorTheme,
+    textSize,
+    language,
     logout,
     session,
     setSession,
     user,
   } = useStore();
+  const sz = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
 
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
@@ -175,19 +180,7 @@ export default function ProfileScreen() {
     }, [user?.id, session?.user?.id])
   );
 
-  const theme = {
-    bg: isDarkMode ? "#0d0d0d" : "#f7f7f5",
-    surface: isDarkMode ? "#1a1a1a" : "#ffffff",
-    surfaceAlt: isDarkMode ? "#222222" : "#f0efec",
-    text: isDarkMode ? "#f0f0f0" : "#111111",
-    subText: isDarkMode ? "#666666" : "#999999",
-    border: isDarkMode ? "#2a2a2a" : "#e8e8e4",
-    accent: "#3B7DD8",
-    accentAlt: "#1a1a1a",
-    danger: "#E05252",
-    success: "#27AE60",
-    warning: "#F39C12",
-  };
+  const theme = buildTheme(isDarkMode, colorTheme);
 
   useEffect(() => {
     Animated.parallel([
@@ -384,7 +377,7 @@ export default function ProfileScreen() {
 
         {/* ── PREFERENCES ── */}
         <AnimatedRow delay={180}>
-          <SectionHeader label="Preferences" theme={theme} />
+          <SectionHeader label={t(language, "preferences")} theme={theme} />
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <SettingItem
               icon="cash-outline"
@@ -421,7 +414,7 @@ export default function ProfileScreen() {
 
         {/* ── ACCOUNT ACTIONS ── */}
         <AnimatedRow delay={300}>
-          <SectionHeader label="Account" theme={theme} />
+          <SectionHeader label={t(language, "account")} theme={theme} />
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {isGuest && (
               <PressableRow onPress={handleMergeGoogle}>
@@ -431,8 +424,8 @@ export default function ProfileScreen() {
                       <Ionicons name="logo-google" size={17} color="#DB4435" />
                     </View>
                     <View>
-                      <Text style={[styles.settingText, { color: theme.text }]}>Link Google</Text>
-                      <Text style={[styles.settingSubText, { color: theme.subText }]}>Save data to cloud</Text>
+                      <Text style={[styles.settingText, { color: theme.text }]}>{t(language, "linkGoogle")}</Text>
+                      <Text style={[styles.settingSubText, { color: theme.subText }]}>{t(language, "saveToCloud")}</Text>
                     </View>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={theme.subText} />
@@ -447,8 +440,8 @@ export default function ProfileScreen() {
                     <Ionicons name="help-circle-outline" size={17} color={theme.warning} />
                   </View>
                   <View>
-                    <Text style={[styles.settingText, { color: theme.text }]}>Help & Support</Text>
-                    <Text style={[styles.settingSubText, { color: theme.subText }]}>FAQs and contact</Text>
+                    <Text style={[styles.settingText, { color: theme.text }]}>{t(language, "helpSupport")}</Text>
+                    <Text style={[styles.settingSubText, { color: theme.subText }]}>{t(language, "faqContact")}</Text>
                   </View>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={theme.subText} />
@@ -462,7 +455,7 @@ export default function ProfileScreen() {
           <PressableRow onPress={handleLogout}>
             <View style={[styles.logoutBtn, { backgroundColor: theme.danger + "0d", borderColor: theme.danger + "25" }]}>
               <Ionicons name="log-out-outline" size={18} color={theme.danger} />
-              <Text style={[styles.logoutText, { color: theme.danger }]}>Sign Out</Text>
+              <Text style={[styles.logoutText, { color: theme.danger }]}>{t(language, "signOut")}</Text>
             </View>
           </PressableRow>
         </AnimatedRow>
@@ -470,7 +463,7 @@ export default function ProfileScreen() {
         {/* ── VERSION ── */}
         <AnimatedRow delay={400}>
           <Text style={[styles.version, { color: theme.subText }]}>
-            Money Tracker · v1.0.0
+            Montra · v1.0.0
           </Text>
         </AnimatedRow>
       </ScrollView>
@@ -487,6 +480,7 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 22,
