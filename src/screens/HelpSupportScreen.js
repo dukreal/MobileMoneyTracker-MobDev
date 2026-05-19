@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useStore } from "../store/useStore";
+import { buildTheme, TEXT_SIZE_MULTIPLIER } from "../constants/settings";
 
 // ─── Animated Row ─────────────────────────────────────────────────────────────
 function AnimatedRow({ children, delay = 0, style }) {
@@ -105,7 +106,8 @@ const FAQ_DATA = [
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function HelpSupportScreen({ navigation }) {
-  const { isDarkMode, session } = useStore();
+  const { isDarkMode, colorTheme, textSize, session } = useStore();
+  const sz = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
   const router = useRouter();
 
   const [subject, setSubject] = useState("");
@@ -115,18 +117,7 @@ export default function HelpSupportScreen({ navigation }) {
 
   const sendBtnScale = useRef(new Animated.Value(1)).current;
 
-  const theme = {
-    bg: isDarkMode ? "#0d0d0d" : "#f7f7f5",
-    surface: isDarkMode ? "#1a1a1a" : "#ffffff",
-    surfaceAlt: isDarkMode ? "#222222" : "#f0efec",
-    text: isDarkMode ? "#f0f0f0" : "#111111",
-    subText: isDarkMode ? "#666666" : "#999999",
-    border: isDarkMode ? "#2a2a2a" : "#e8e8e4",
-    accent: "#3B7DD8",
-    danger: "#E05252",
-    success: "#27AE60",
-    warning: "#F39C12",
-  };
+  const theme = buildTheme(isDarkMode, colorTheme);
 
   const handleSend = async () => {
     if (!subject.trim() || !message.trim()) {
@@ -182,7 +173,7 @@ export default function HelpSupportScreen({ navigation }) {
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={[styles.backBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={styles.backBtn}
           >
             <Ionicons name="arrow-back" size={18} color={theme.text} />
           </TouchableOpacity>
@@ -279,7 +270,7 @@ export default function HelpSupportScreen({ navigation }) {
           <Text style={[styles.sectionLabel, { color: theme.subText }]}>About</Text>
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {[
-              { label: "App Name", value: "Money Tracker", icon: "phone-portrait-outline", iconBg: theme.accent + "15", iconColor: theme.accent },
+              { label: "App Name", value: "Montra", icon: "phone-portrait-outline", iconBg: theme.accent + "15", iconColor: theme.accent },
               { label: "Version", value: "1.0.0", icon: "code-slash-outline", iconBg: "#7C3AED15", iconColor: "#7C3AED" },
               { label: "Developer", value: "dukdakdok", icon: "person-outline", iconBg: theme.success + "15", iconColor: theme.success },
               { label: "Support Email", value: "dakdekdikdokduk123@gmail.com", icon: "mail-outline", iconBg: theme.warning + "15", iconColor: theme.warning },
@@ -326,8 +317,6 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
   },
