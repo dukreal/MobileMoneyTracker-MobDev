@@ -166,7 +166,8 @@ export default function HelpSupportScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       style={[styles.root, { backgroundColor: theme.bg }]}
-      behavior={undefined}
+      behavior="height"
+      keyboardVerticalOffset={0}
     >
       {/* ── HEADER ── */}
       <AnimatedRow delay={0}>
@@ -184,7 +185,7 @@ export default function HelpSupportScreen({ navigation }) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { flexGrow: 1 }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* ── HERO BANNER ── */}
