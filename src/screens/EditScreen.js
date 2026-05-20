@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,36 +8,81 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Animated,
+  Pressable,
+  Modal,
 } from "react-native";
 import { supabase } from "../supabase/supabaseClient";
 import { useStore } from "../store/useStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { initDB, updateLocalTransaction, enqueuePendingOp } from "../db/localDB";
+import { buildTheme } from "../constants/settings";
+
+// ─── Animated Row ─────────────────────────────────────────────────────────────
+function AnimatedRow({ children, delay = 0, style }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(18)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 420, delay, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 420, delay, useNativeDriver: true }),
+    ]).start();
+  }, []);
+  return (
+    <Animated.View style={[{ opacity, transform: [{ translateY }] }, style]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+// ─── Pressable Row ────────────────────────────────────────────────────────────
+function PressableRow({ onPress, children }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start()}
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>
+    </Pressable>
+  );
+}
+
+// ─── Section Header ───────────────────────────────────────────────────────────
+function SectionHeader({ label, theme }) {
+  return (
+    <Text style={[styles.sectionLabel, { color: theme.subText }]}>{label}</Text>
+  );
+}
 
 export default function EditScreen({ item }) {
-  const { isDarkMode, currency, isOnline, refreshPendingCount } = useStore();
+  const { isDarkMode, currency, colorTheme, isOnline, refreshPendingCount } = useStore();
   const [loading, setLoading] = useState(false);
-
   const [amount, setAmount] = useState(item.amount.toString());
   const [notes, setNotes] = useState(item.notes || "");
 
+  const headerAnim = useRef(new Animated.Value(0)).current;
+
+  const [customModal, setCustomModal] = useState({ visible: false, icon: "alert-circle-outline", iconColor: null, title: "", message: "", buttons: [] });
+  const showModal = (icon, iconColor, title, message, buttons) => setCustomModal({ visible: true, icon, iconColor, title, message, buttons });
+  const hideModal = () => setCustomModal((prev) => ({ ...prev, visible: false }));
+
+  useEffect(() => {
+    Animated.timing(headerAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+  }, []);
+
   const isIncome = item.type === "income";
   const accentColor = isIncome ? "#2ECC71" : "#FF6B6B";
-
-  const theme = {
-    bg: isDarkMode ? "#121212" : "#ffffff",
-    text: isDarkMode ? "#ffffff" : "#000000",
-    subText: isDarkMode ? "#888888" : "#999999",
-    card: isDarkMode ? "#1e1e1e" : "#f9f9f9",
-    inputBorder: isDarkMode ? "#2c2c2c" : "#f0f0f0",
-    placeholder: isDarkMode ? "#555" : "#bbb",
-  };
+  const theme = buildTheme(isDarkMode, colorTheme);
 
   const handleUpdate = async () => {
     const parsedAmount = parseFloat(amount);
-    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0)
-      return Alert.alert("Error", "Please enter a valid amount");
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      showModal("alert-circle-outline", theme.danger, "Invalid Amount", "Please enter a valid amount greater than 0.", [{ label: "OK", onPress: hideModal, primary: true }]);
+      return;
+    }
 
     setLoading(true);
 
@@ -63,7 +108,6 @@ export default function EditScreen({ item }) {
           .eq("id", item.id);
         if (error) throw error;
       } else {
-        // Save locally and queue for sync
         await updateLocalTransaction(item.id, {
           ...updateData,
           original_amount: item.amount,
@@ -73,166 +117,253 @@ export default function EditScreen({ item }) {
         await refreshPendingCount();
       }
 
-      Alert.alert(
-        isOnline ? "Success" : "Saved Offline",
-        isOnline ? "Transaction updated!" : "Saved locally. Will sync when back online.",
-        [{ text: "OK", onPress: () => router.replace("/(tabs)") }]
+      showModal(
+        isOnline ? "checkmark-circle-outline" : "cloud-offline-outline",
+        isOnline ? "#2ECC71" : "#f39c12",
+        isOnline ? "Updated!" : "Saved Offline",
+        isOnline ? "Transaction updated successfully." : "Saved locally. Will sync when back online.",
+        [{ label: "OK", primary: true, onPress: () => { hideModal(); router.replace("/(tabs)"); } }]
       );
     } catch (err) {
-      Alert.alert("Update Failed", err.message);
+      showModal("close-circle-outline", "#FF6B6B", "Update Failed", err.message, [{ label: "OK", onPress: hideModal, primary: true }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.wrapper, { backgroundColor: theme.bg }]}>
-      {/* HEADER */}
-      <View style={[styles.header, { borderBottomColor: theme.inputBorder }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={[
-            styles.circleIconBtn,
-            { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" },
-          ]}
-        >
-          <Ionicons name="chevron-back" size={20} color={theme.text} />
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+
+      {/* ── HEADER ── */}
+      <Animated.View
+        style={[
+          styles.header,
+          { borderBottomColor: theme.border },
+          {
+            opacity: headerAnim,
+            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }],
+          },
+        ]}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={22} color={theme.text} />
         </TouchableOpacity>
-
         <Text style={[styles.headerTitle, { color: theme.text }]}>Edit Entry</Text>
-
-        <View style={{ width: 40 }} />
-      </View>
+        <View style={{ width: 36 }} />
+      </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 }}
+        contentContainerStyle={styles.scroll}
       >
-        {/* AMOUNT HERO */}
-        <View style={[styles.heroCard, { backgroundColor: theme.card }]}>
-          <View style={[styles.typePill, { backgroundColor: accentColor + "22" }]}>
-            <Ionicons
-              name={isIncome ? "arrow-up" : "arrow-down"}
-              size={11}
-              color={accentColor}
+        {/* ── AMOUNT HERO ── */}
+        <AnimatedRow delay={60}>
+          <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {/* Type pill */}
+            <View style={[styles.typePill, { backgroundColor: accentColor + "18" }]}>
+              <Ionicons name={isIncome ? "arrow-up" : "arrow-down"} size={11} color={accentColor} />
+              <Text style={[styles.typeText, { color: accentColor }]}>
+                {isIncome ? "INCOME" : "EXPENSE"}
+              </Text>
+            </View>
+
+            {/* Currency label */}
+            <Text style={[styles.currencyLabel, { color: theme.subText }]}>{currency}</Text>
+
+            {/* Amount input */}
+            <TextInput
+              style={[styles.amountInput, { color: theme.text }]}
+              keyboardType="decimal-pad"
+              value={amount}
+              onChangeText={setAmount}
+              autoFocus
+              placeholder="0.00"
+              placeholderTextColor={theme.subText}
+              textAlign="center"
             />
-            <Text style={[styles.typeText, { color: accentColor }]}>
-              {isIncome ? "INCOME" : "EXPENSE"}
-            </Text>
+
+            {/* Divider */}
+            <View style={[styles.heroDivider, { backgroundColor: theme.border }]} />
+
+            {/* Category hint */}
+            <View style={styles.categoryRow}>
+              <View style={[styles.categoryIconBox, { backgroundColor: theme.surfaceAlt }]}>
+                <Ionicons name="pricetag-outline" size={13} color={theme.subText} />
+              </View>
+              <Text style={[styles.categoryHint, { color: theme.subText }]}>
+                {item.parent_category}  ›  {item.sub_category}
+              </Text>
+            </View>
           </View>
+        </AnimatedRow>
 
-          <Text style={[styles.currencyLabel, { color: theme.subText }]}>
-            {currency}
-          </Text>
-          <TextInput
-            style={[styles.amountInput, { color: theme.text }]}
-            keyboardType="decimal-pad"
-            value={amount}
-            onChangeText={setAmount}
-            autoFocus
-            placeholder="0.00"
-            placeholderTextColor={theme.placeholder}
-            textAlign="center"
-          />
-
-          <Text style={[styles.categoryHint, { color: theme.subText }]}>
-            {item.parent_category}  ›  {item.sub_category}
-          </Text>
-        </View>
-
-        {/* NOTES */}
-        <Text style={[styles.sectionLabel, { color: theme.subText }]}>NOTE</Text>
-        <View style={[styles.notesCard, { backgroundColor: theme.card, borderColor: theme.inputBorder }]}>
-          <TextInput
-            style={[styles.notesInput, { color: theme.text }]}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            placeholder="Add a note..."
-            placeholderTextColor={theme.placeholder}
-            textAlignVertical="top"
-          />
-        </View>
-
-        {/* INFO ROW — non-editable fields */}
-        <Text style={[styles.sectionLabel, { color: theme.subText }]}>DETAILS</Text>
-        <View style={[styles.detailsCard, { backgroundColor: theme.card, borderColor: theme.inputBorder }]}>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailKey, { color: theme.subText }]}>Type</Text>
-            <Text style={[styles.detailVal, { color: theme.text }]}>
-              {isIncome ? "Income" : "Expense"}
-            </Text>
+        {/* ── NOTES ── */}
+        <AnimatedRow delay={120}>
+          <SectionHeader label="NOTE" theme={theme} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.noteRow}>
+              <View style={[styles.iconCircle, { backgroundColor: theme.accent + "15" }]}>
+                <Ionicons name="document-text-outline" size={17} color={theme.accent} />
+              </View>
+              <TextInput
+                style={[styles.notesInput, { color: theme.text }]}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                placeholder="Add a note..."
+                placeholderTextColor={theme.subText}
+                textAlignVertical="top"
+              />
+            </View>
           </View>
-          <View style={[styles.detailDivider, { backgroundColor: theme.inputBorder }]} />
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailKey, { color: theme.subText }]}>Category</Text>
-            <Text style={[styles.detailVal, { color: theme.text }]}>
-              {item.parent_category} › {item.sub_category}
-            </Text>
-          </View>
-          {item.latitude ? (
-            <>
-              <View style={[styles.detailDivider, { backgroundColor: theme.inputBorder }]} />
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailKey, { color: theme.subText }]}>Location</Text>
-                <Text style={[styles.detailVal, { color: theme.text }]}>
+        </AnimatedRow>
+
+        {/* ── DETAILS (non-editable) ── */}
+        <AnimatedRow delay={180}>
+          <SectionHeader label="DETAILS" theme={theme} />
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+
+            {/* Type */}
+            <View style={[styles.settingRow, { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: accentColor + "15" }]}>
+                  <Ionicons
+                    name={isIncome ? "trending-up-outline" : "trending-down-outline"}
+                    size={17}
+                    color={accentColor}
+                  />
+                </View>
+                <Text style={[styles.settingText, { color: theme.text }]}>Type</Text>
+              </View>
+              <View style={[styles.valuePill, { backgroundColor: accentColor + "18" }]}>
+                <Text style={[styles.valuePillText, { color: accentColor }]}>
+                  {isIncome ? "Income" : "Expense"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Category */}
+            <View
+              style={[
+                styles.settingRow,
+                item.latitude ? { borderBottomWidth: 1, borderBottomColor: theme.border } : null,
+              ]}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: theme.accent + "15" }]}>
+                  <Ionicons name="pricetag-outline" size={17} color={theme.accent} />
+                </View>
+                <Text style={[styles.settingText, { color: theme.text }]}>Category</Text>
+              </View>
+              <Text style={[styles.detailVal, { color: theme.subText }]}>
+                {item.parent_category} › {item.sub_category}
+              </Text>
+            </View>
+
+            {/* Location (conditional) */}
+            {item.latitude ? (
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <View style={[styles.iconCircle, { backgroundColor: "#3B7DD815" }]}>
+                    <Ionicons name="location-outline" size={17} color="#3B7DD8" />
+                  </View>
+                  <Text style={[styles.settingText, { color: theme.text }]}>Location</Text>
+                </View>
+                <Text style={[styles.detailVal, { color: theme.subText }]}>
                   {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
                 </Text>
               </View>
-            </>
-          ) : null}
-        </View>
+            ) : null}
+          </View>
+        </AnimatedRow>
       </ScrollView>
 
-      {/* SAVE BUTTON */}
-      <TouchableOpacity
-        style={[
-          styles.saveButton,
-          { backgroundColor: isDarkMode ? "#ffffff" : "#000000" },
-        ]}
-        onPress={handleUpdate}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color={isDarkMode ? "#000" : "#fff"} />
-        ) : (
-          <Text style={[styles.saveText, { color: isDarkMode ? "#000000" : "#ffffff" }]}>
-            Save Changes
-          </Text>
-        )}
-      </TouchableOpacity>
+      {/* ── CUSTOM MODAL ── */}
+      <Modal visible={customModal.visible} transparent animationType="fade">
+        <View style={styles.customModalOverlay}>
+          <View style={[styles.customModalCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.customModalIcon, { backgroundColor: (customModal.iconColor ?? theme.accent) + "18" }]}>
+              <Ionicons name={customModal.icon} size={30} color={customModal.iconColor ?? theme.accent} />
+            </View>
+            <Text style={[styles.customModalTitle, { color: theme.text }]}>{customModal.title}</Text>
+            <Text style={[styles.customModalMessage, { color: theme.subText }]}>{customModal.message}</Text>
+            <View style={styles.customModalButtons}>
+              {customModal.buttons.map((btn, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={btn.onPress}
+                  style={[styles.customModalBtn, btn.primary ? { backgroundColor: customModal.iconColor ?? theme.accent } : { backgroundColor: theme.surfaceAlt }]}
+                >
+                  <Text style={[styles.customModalBtnText, { color: btn.primary ? "#fff" : theme.text }]}>{btn.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── SAVE BUTTON ── */}
+      <AnimatedRow delay={240} style={styles.bottomWrap}>
+        <PressableRow onPress={handleUpdate}>
+          <View style={[styles.saveButton, { backgroundColor: theme.accent }]}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+                <Text style={styles.saveText}>Save Changes</Text>
+              </>
+            )}
+          </View>
+        </PressableRow>
+      </AnimatedRow>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1 },
+  root: { flex: 1 },
 
-  // HEADER
+  // ── HEADER
   header: {
+    paddingTop: 58,
+    paddingBottom: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 55,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
   },
-  circleIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTitle: { fontSize: 17, fontWeight: "800", letterSpacing: 0.3 },
+  headerTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.5 },
 
-  // HERO
+  // ── SCROLL
+  scroll: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, gap: 8 },
+
+  // ── SECTION LABEL
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+    marginTop: 14,
+    marginBottom: 8,
+    marginLeft: 2,
+  },
+
+  // ── HERO CARD
   heroCard: {
     borderRadius: 20,
+    borderWidth: 1,
     padding: 24,
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 4,
   },
   typePill: {
     flexDirection: "row",
@@ -241,67 +372,90 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   typeText: { fontSize: 11, fontWeight: "800", letterSpacing: 1.5 },
-  currencyLabel: { fontSize: 18, fontWeight: "700", marginBottom: 2 },
+  currencyLabel: { fontSize: 16, fontWeight: "700", marginBottom: 2 },
   amountInput: {
     fontSize: 48,
     fontWeight: "900",
     letterSpacing: -1,
     minWidth: 120,
     textAlign: "center",
+    paddingVertical: 4,
   },
-  categoryHint: { fontSize: 13, fontWeight: "500", marginTop: 10 },
-
-  // SECTION LABEL
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginBottom: 8,
-    marginLeft: 4,
+  heroDivider: { width: "100%", height: 1, marginVertical: 16 },
+  categoryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  categoryIconBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    justifyContent: "center",
+    alignItems: "center",
   },
+  categoryHint: { fontSize: 13, fontWeight: "500" },
 
-  // NOTES
-  notesCard: {
-    borderRadius: 20,
-    borderWidth: 1,
+  // ── CARD
+  card: { borderRadius: 18, borderWidth: 1, overflow: "hidden", marginBottom: 4 },
+
+  // ── NOTE ROW
+  noteRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
     padding: 16,
-    marginBottom: 24,
   },
   notesInput: {
+    flex: 1,
     fontSize: 15,
-    minHeight: 90,
+    minHeight: 72,
     lineHeight: 22,
   },
 
-  // DETAILS
-  detailsCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: "hidden",
-    marginBottom: 24,
-  },
-  detailRow: {
+  // ── SETTING ROW
+  settingRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 13,
   },
-  detailKey: { fontSize: 14, fontWeight: "500" },
-  detailVal: { fontSize: 14, fontWeight: "600", maxWidth: "60%", textAlign: "right" },
-  detailDivider: { height: 1, marginHorizontal: 16 },
+  settingLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  iconCircle: { width: 32, height: 32, borderRadius: 9, justifyContent: "center", alignItems: "center" },
+  settingText: { fontSize: 14, fontWeight: "600" },
+  detailVal: { fontSize: 13, fontWeight: "500", maxWidth: "50%", textAlign: "right" },
 
-  // BOTTOM
-  saveButton: {
-    padding: 18,
-    borderRadius: 15,
-    marginHorizontal: 20,
-    marginTop: 15,
-    marginBottom: 55,
-    alignItems: "center",
+  // ── VALUE PILL
+  valuePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  saveText: { fontSize: 16, fontWeight: "800", letterSpacing: 0.3 },
+  valuePillText: { fontSize: 12, fontWeight: "700" },
+
+  // ── BOTTOM
+  bottomWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 48,
+  },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  saveText: { fontSize: 16, fontWeight: "800", color: "#fff", letterSpacing: 0.2 },
+
+  // ── CUSTOM MODAL
+  customModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: 28 },
+  customModalCard: { width: "100%", borderRadius: 24, borderWidth: 1, padding: 24, alignItems: "center", gap: 10 },
+  customModalIcon: { width: 60, height: 60, borderRadius: 18, justifyContent: "center", alignItems: "center", marginBottom: 4 },
+  customModalTitle: { fontSize: 18, fontWeight: "800", textAlign: "center", letterSpacing: -0.3 },
+  customModalMessage: { fontSize: 14, fontWeight: "500", textAlign: "center", lineHeight: 20 },
+  customModalButtons: { width: "100%", gap: 8, marginTop: 6 },
+  customModalBtn: { width: "100%", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  customModalBtnText: { fontSize: 15, fontWeight: "700" },
 });
