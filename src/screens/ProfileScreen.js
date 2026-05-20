@@ -5,9 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Animated,
   Pressable,
+  Modal,
 } from "react-native";
 import { useStore } from "../store/useStore";
 import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
@@ -153,6 +153,10 @@ export default function ProfileScreen() {
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
 
+  const [customModal, setCustomModal] = useState({ visible: false, icon: "alert-circle-outline", iconColor: null, title: "", message: "", buttons: [] });
+  const showModal = (icon, iconColor, title, message, buttons) => setCustomModal({ visible: true, icon, iconColor, title, message, buttons });
+  const hideModal = () => setCustomModal((prev) => ({ ...prev, visible: false }));
+
   const headerAnim = useRef(new Animated.Value(0)).current;
   const avatarScale = useRef(new Animated.Value(0.8)).current;
 
@@ -199,13 +203,14 @@ export default function ProfileScreen() {
     ]).start();
   }, []);
 
-  const handleLogout = async () => {
-    Alert.alert("Sign Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
+  const handleLogout = () => {
+    showModal("log-out-outline", theme.danger, "Sign Out", "Are you sure you want to sign out?", [
+      { label: "Cancel", primary: false, onPress: hideModal },
       {
-        text: "Sign Out",
-        style: "destructive",
+        label: "Sign Out",
+        primary: true,
         onPress: async () => {
+          hideModal();
           try {
             const { error } = await supabase.auth.signOut();
             if (error) console.log("Sign out error:", error.message);
@@ -293,24 +298,24 @@ export default function ProfileScreen() {
                 console.log("Migration skipped - reason:", !hasGuestTransactions ? "no guest transactions" : oldUserId === newUserId ? "same user" : "no oldUserId");
               }
               setSession(newSession);
-              Alert.alert("Synced!", "Signed in and all your transactions have been moved to your Google account.");
+              showModal("checkmark-circle-outline", "#2ECC71", "Synced!", "Signed in and all your transactions have been moved to your Google account.", [
+                { label: "OK", primary: true, onPress: hideModal },
+              ]);
             }
           }
         }
       } catch (e) {
-        Alert.alert("Error", e.message);
+        showModal("alert-circle-outline", theme.danger, "Error", e.message, [
+          { label: "OK", primary: true, onPress: hideModal },
+        ]);
       }
     };
 
     // Skip linkIdentity entirely — go straight to sign in + migrate
-    Alert.alert(
-      "Link Google Account",
-      "Sign in with Google to save your data to the cloud. Your existing transactions will be synced.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Sign In & Sync", onPress: doSignInWithGoogle },
-      ]
-    );
+    showModal("logo-google", "#DB4435", "Link Google Account", "Sign in with Google to save your data to the cloud. Your existing transactions will be synced.", [
+      { label: "Cancel", primary: false, onPress: hideModal },
+      { label: "Sign In & Sync", primary: true, onPress: () => { hideModal(); doSignInWithGoogle(); } },
+    ]);
   };
 
   const displayName = isGuest
@@ -465,6 +470,30 @@ export default function ProfileScreen() {
           </Text>
         </AnimatedRow>
       </ScrollView>
+
+      {/* ── CUSTOM MODAL ── */}
+      <Modal visible={customModal.visible} transparent animationType="fade">
+        <View style={styles.customModalOverlay}>
+          <View style={[styles.customModalCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.customModalIcon, { backgroundColor: (customModal.iconColor ?? theme.accent) + "18" }]}>
+              <Ionicons name={customModal.icon} size={30} color={customModal.iconColor ?? theme.accent} />
+            </View>
+            <Text style={[styles.customModalTitle, { color: theme.text }]}>{customModal.title}</Text>
+            <Text style={[styles.customModalMessage, { color: theme.subText }]}>{customModal.message}</Text>
+            <View style={styles.customModalButtons}>
+              {customModal.buttons.map((btn, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={btn.onPress}
+                  style={[styles.customModalBtn, btn.primary ? { backgroundColor: customModal.iconColor ?? theme.accent } : { backgroundColor: theme.surfaceAlt }]}
+                >
+                  <Text style={[styles.customModalBtnText, { color: btn.primary ? "#fff" : theme.text }]}>{btn.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -609,6 +638,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   logoutText: { fontSize: 14, fontWeight: "700" },
+
+  // Custom Modal
+  customModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: 28 },
+  customModalCard: { width: "100%", borderRadius: 24, borderWidth: 1, padding: 24, alignItems: "center", gap: 10 },
+  customModalIcon: { width: 60, height: 60, borderRadius: 18, justifyContent: "center", alignItems: "center", marginBottom: 4 },
+  customModalTitle: { fontSize: 18, fontWeight: "800", textAlign: "center", letterSpacing: -0.3 },
+  customModalMessage: { fontSize: 14, fontWeight: "500", textAlign: "center", lineHeight: 20 },
+  customModalButtons: { width: "100%", gap: 8, marginTop: 6 },
+  customModalBtn: { width: "100%", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  customModalBtnText: { fontSize: 15, fontWeight: "700" },
 
   // Version
   version: {
