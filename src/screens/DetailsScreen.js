@@ -75,7 +75,7 @@ export default function DetailsScreen({ item }) {
             Alert.alert(
               isOnline ? "Deleted" : "Deleted Offline",
               isOnline ? "Transaction removed." : "Removed locally. Will sync when back online.",
-              [{ text: "OK", onPress: () => router.replace({ pathname: "/(tabs)", params: { jumpToDate: item.created_at } }) }]
+              [{ text: "OK", onPress: () => router.push({ pathname: "/(tabs)", params: { jumpToDate: item.created_at } }) }]
             );
           },
         },
@@ -125,7 +125,7 @@ export default function DetailsScreen({ item }) {
           },
         ]}
       >
-        <TouchableOpacity onPress={() => router.replace({ pathname: "/(tabs)", params: { jumpToDate: item.created_at } })} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.push({ pathname: "/(tabs)", params: { jumpToDate: item.created_at } })} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Details</Text>
