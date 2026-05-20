@@ -263,7 +263,7 @@ export default function ChartsScreen() {
     }
     if (viewMode === "month") return format(selectedMonth, "MMMM yyyy");
     return selectedYear === new Date().getFullYear()
-      ? "This Year"
+      ? t(language, "thisYear")
       : String(selectedYear);
   }, [viewMode, selectedMonth, selectedWeek, selectedYear]);
 
@@ -347,7 +347,7 @@ export default function ChartsScreen() {
             >
               <Text style={[styles.periodPillText, { color: theme.accent }]}>
                 {isSameWeek(selectedWeek, new Date(), { weekStartsOn: 0 })
-                  ? "This Week"
+                  ? t(language, "thisWeek")
                   : periodLabel}
               </Text>
               <Ionicons name="chevron-down" size={14} color={theme.accent} />
@@ -362,8 +362,8 @@ export default function ChartsScreen() {
             >
               <Text style={[styles.periodPillText, { color: theme.accent }]}>
                 {selectedYear === new Date().getFullYear()
-                  ? "This Year"
-                  : `Year ${selectedYear}`}
+                  ? t(language, "thisYear")
+                  : `${t(language, "yearLabel")} ${selectedYear}`}
               </Text>
               <Ionicons name="chevron-down" size={14} color={theme.accent} />
             </TouchableOpacity>
@@ -495,7 +495,7 @@ export default function ChartsScreen() {
                   { color: theme.text, fontSize: 16 * sz },
                 ]}
               >
-                {chartType === "expense" ? "Expense" : "Income"} Breakdown
+                {t(language, chartType === "expense" ? "expenseBreakdown" : "incomeBreakdown")}
               </Text>
               <Text
                 style={[
@@ -503,7 +503,7 @@ export default function ChartsScreen() {
                   { color: theme.subText, fontSize: 11 * sz },
                 ]}
               >
-                Top categories this period
+                {t(language, "topCategories")}
               </Text>
             </View>
             {/* Expense / Income toggle */}
@@ -533,7 +533,7 @@ export default function ChartsScreen() {
                     { color: chartType === "expense" ? "#fff" : theme.subText },
                   ]}
                 >
-                  Expense
+                  {t(language, "expense")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -552,7 +552,7 @@ export default function ChartsScreen() {
                     { color: chartType === "income" ? "#fff" : theme.subText },
                   ]}
                 >
-                  Income
+                  {t(language, "income")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -589,11 +589,10 @@ export default function ChartsScreen() {
                 />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.text }]}>
-                No {chartType === "expense" ? "Expenses" : "Income"}
+                {t(language, chartType === "expense" ? "noExpenses" : "noIncome")}
               </Text>
               <Text style={[styles.emptyText, { color: theme.subText }]}>
-                No {chartType === "expense" ? "expense" : "income"} records for
-                this period
+                {t(language, "noRecordsForPeriod")}
               </Text>
             </View>
           ) : (
@@ -665,7 +664,7 @@ export default function ChartsScreen() {
                           <Text
                             style={[styles.centerSub, { color: theme.subText }]}
                           >
-                            {chartType === "expense" ? "Expenses" : "Income"}
+                            {t(language, chartType === "expense" ? "expense" : "income")}
                           </Text>
                         </>
                       )}
@@ -764,7 +763,7 @@ export default function ChartsScreen() {
                 },
               ]}
             >
-              Tap a slice to see transactions
+              {t(language, "tapSlice")}
             </Text>
           </View>
         )}
@@ -801,8 +800,7 @@ export default function ChartsScreen() {
                     {selectedSlice.label}
                   </Text>
                   <Text style={[styles.drillCount, { color: theme.subText }]}>
-                    {drillTxs.length} transaction
-                    {drillTxs.length !== 1 ? "s" : ""} · {currency}
+                    {drillTxs.length} {drillTxs.length !== 1 ? t(language, "transactionCountPlural") : t(language, "transactionCount")} · {currency}
                     {selectedSlice.value.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                     })}

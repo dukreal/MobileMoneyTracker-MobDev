@@ -69,14 +69,14 @@ function PressableRow({ onPress, children, style }) {
 }
 
 // ─── Stat Pill ────────────────────────────────────────────────────────────────
-function StatPill({ icon, label, value, color, theme }) {
+function StatPill({ icon, label, value, color, theme, sz = 1 }) {
   return (
     <View style={[statStyles.pill, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={[statStyles.iconBox, { backgroundColor: color + "15" }]}>
-        <Ionicons name={icon} size={15} color={color} />
+        <Ionicons name={icon} size={15 * sz} color={color} />
       </View>
-      <Text style={[statStyles.value, { color: theme.text }]} adjustsFontSizeToFit numberOfLines={1}>{value}</Text>
-      <Text style={[statStyles.label, { color: theme.subText }]}>{label}</Text>
+      <Text style={[statStyles.value, { color: theme.text, fontSize: 16 * sz }]} adjustsFontSizeToFit numberOfLines={1}>{value}</Text>
+      <Text style={[statStyles.label, { color: theme.subText, fontSize: 10 * sz }]}>{label}</Text>
     </View>
   );
 }
@@ -204,10 +204,10 @@ export default function ProfileScreen() {
   }, []);
 
   const handleLogout = () => {
-    showModal("log-out-outline", theme.danger, "Sign Out", "Are you sure you want to sign out?", [
-      { label: "Cancel", primary: false, onPress: hideModal },
+    showModal("log-out-outline", theme.danger, t(language, "signOutTitle"), t(language, "signOutMsg"), [
+      { label: t(language, "cancel"), primary: false, onPress: hideModal },
       {
-        label: "Sign Out",
+        label: t(language, "signOutConfirm"),
         primary: true,
         onPress: async () => {
           hideModal();
@@ -298,23 +298,23 @@ export default function ProfileScreen() {
                 console.log("Migration skipped - reason:", !hasGuestTransactions ? "no guest transactions" : oldUserId === newUserId ? "same user" : "no oldUserId");
               }
               setSession(newSession);
-              showModal("checkmark-circle-outline", "#2ECC71", "Synced!", "Signed in and all your transactions have been moved to your Google account.", [
-                { label: "OK", primary: true, onPress: hideModal },
-              ]);
+              showModal("checkmark-circle-outline", "#2ECC71", t(language, "syncedTitle"), t(language, "syncedMsg"), [
+        { label: "OK", primary: true, onPress: hideModal },
+      ]);
             }
           }
         }
       } catch (e) {
-        showModal("alert-circle-outline", theme.danger, "Error", e.message, [
+        showModal("alert-circle-outline", theme.danger, t(language, "errorTitle"), e.message, [
           { label: "OK", primary: true, onPress: hideModal },
         ]);
       }
     };
 
     // Skip linkIdentity entirely — go straight to sign in + migrate
-    showModal("logo-google", "#DB4435", "Link Google Account", "Sign in with Google to save your data to the cloud. Your existing transactions will be synced.", [
-      { label: "Cancel", primary: false, onPress: hideModal },
-      { label: "Sign In & Sync", primary: true, onPress: () => { hideModal(); doSignInWithGoogle(); } },
+    showModal("logo-google", "#DB4435", t(language, "linkGoogleTitle"), t(language, "linkGoogleMsg"), [
+      { label: t(language, "cancel"), primary: false, onPress: hideModal },
+      { label: t(language, "linkGoogleConfirm"), primary: true, onPress: () => { hideModal(); doSignInWithGoogle(); } },
     ]);
   };
 
@@ -373,9 +373,9 @@ export default function ProfileScreen() {
 
         {/* ── STATS ROW ── */}
         <AnimatedRow delay={120} style={styles.statsRow}>
-          <StatPill icon="trending-up-outline" label="Income" value={`${currency}${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.success} theme={theme} />
-          <StatPill icon="trending-down-outline" label="Spent" value={`${currency}${totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.danger} theme={theme} />
-          <StatPill icon="wallet-outline" label="Balance" value={`${currency}${Math.abs(totalIncome - totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.accent} theme={theme} />
+          <StatPill icon="trending-up-outline" label={t(language, "statIncome")} value={`${currency}${totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.success} theme={theme} sz={sz} />
+          <StatPill icon="trending-down-outline" label={t(language, "statSpent")} value={`${currency}${totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.danger} theme={theme} sz={sz} />
+          <StatPill icon="wallet-outline" label={t(language, "statBalance")} value={`${currency}${Math.abs(totalIncome - totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} color={theme.accent} theme={theme} sz={sz} />
         </AnimatedRow>
 
         {/* ── PREFERENCES ── */}
@@ -386,7 +386,7 @@ export default function ProfileScreen() {
               icon="cash-outline"
               iconBg={theme.success + "15"}
               iconColor={theme.success}
-              label="Currency"
+              label={t(language, "currencyLabel")}
               theme={theme}
               right={
                 <View style={[styles.segmented, { backgroundColor: theme.surfaceAlt }]}>
@@ -478,8 +478,8 @@ export default function ProfileScreen() {
             <View style={[styles.customModalIcon, { backgroundColor: (customModal.iconColor ?? theme.accent) + "18" }]}>
               <Ionicons name={customModal.icon} size={30} color={customModal.iconColor ?? theme.accent} />
             </View>
-            <Text style={[styles.customModalTitle, { color: theme.text }]}>{customModal.title}</Text>
-            <Text style={[styles.customModalMessage, { color: theme.subText }]}>{customModal.message}</Text>
+            <Text style={[styles.customModalTitle, { color: theme.text, fontSize: 18 * sz }]}>{customModal.title}</Text>
+            <Text style={[styles.customModalMessage, { color: theme.subText, fontSize: 14 * sz }]}>{customModal.message}</Text>
             <View style={styles.customModalButtons}>
               {customModal.buttons.map((btn, i) => (
                 <TouchableOpacity
@@ -487,7 +487,7 @@ export default function ProfileScreen() {
                   onPress={btn.onPress}
                   style={[styles.customModalBtn, btn.primary ? { backgroundColor: customModal.iconColor ?? theme.accent } : { backgroundColor: theme.surfaceAlt }]}
                 >
-                  <Text style={[styles.customModalBtnText, { color: btn.primary ? "#fff" : theme.text }]}>{btn.label}</Text>
+                  <Text style={[styles.customModalBtnText, { color: btn.primary ? "#fff" : theme.text, fontSize: 15 * sz }]}>{btn.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>

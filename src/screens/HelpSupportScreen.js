@@ -38,7 +38,7 @@ function AnimatedRow({ children, delay = 0, style }) {
 }
 
 // ─── FAQ Item ─────────────────────────────────────────────────────────────────
-function FAQItem({ question, answer, theme, isLast }) {
+function FAQItem({ question, answer, theme, isLast, sz = 1 }) {
   const [open, setOpen] = useState(false);
   const anim = useRef(new Animated.Value(0)).current;
   const rotate = useRef(new Animated.Value(0)).current;
@@ -64,13 +64,13 @@ function FAQItem({ question, answer, theme, isLast }) {
       ]}
     >
       <View style={styles.faqHeader}>
-        <Text style={[styles.faqQuestion, { color: theme.text }]}>{question}</Text>
+        <Text style={[styles.faqQuestion, { color: theme.text, fontSize: 14 * sz }]}>{question}</Text>
         <Animated.View style={{ transform: [{ rotate: rotateZ }] }}>
           <Ionicons name="add" size={18} color={theme.subText} />
         </Animated.View>
       </View>
       <Animated.View style={{ maxHeight, overflow: "hidden" }}>
-        <Text style={[styles.faqAnswer, { color: theme.subText }]}>{answer}</Text>
+        <Text style={[styles.faqAnswer, { color: theme.subText, fontSize: 13 * sz }]}>{answer}</Text>
       </Animated.View>
     </Pressable>
   );
@@ -162,7 +162,7 @@ export default function HelpSupportScreen({ navigation }) {
           >
             <Ionicons name="arrow-back" size={18} color={theme.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>{t(language, "helpSupportTitle")}</Text>
+          <Text style={[styles.headerTitle, { color: theme.text, fontSize: 17 * sz }]}>{t(language, "helpSupportTitle")}</Text>
           <View style={{ width: 36 }} />
         </View>
       </AnimatedRow>
@@ -179,8 +179,8 @@ export default function HelpSupportScreen({ navigation }) {
               <Ionicons name="headset-outline" size={28} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.heroTitle, { color: theme.text }]}>{t(language, "hereToHelp")}</Text>
-              <Text style={[styles.heroSub, { color: theme.subText }]}>
+              <Text style={[styles.heroTitle, { color: theme.text, fontSize: 15 * sz }]}>{t(language, "hereToHelp")}</Text>
+              <Text style={[styles.heroSub, { color: theme.subText, fontSize: 12 * sz }]}>
                 {t(language, "heroSub")}
               </Text>
             </View>
@@ -189,7 +189,7 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── FAQ ── */}
         <AnimatedRow delay={120}>
-          <Text style={[styles.sectionLabel, { color: theme.subText }]}>{t(language, "frequentlyAsked")}</Text>
+          <Text style={[styles.sectionLabel, { color: theme.subText, fontSize: 11 * sz }]}>{t(language, "frequentlyAsked")}</Text>
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {getFAQData(language).map((item, i) => (
               <FAQItem
@@ -197,7 +197,8 @@ export default function HelpSupportScreen({ navigation }) {
                 question={item.question}
                 answer={item.answer}
                 theme={theme}
-                isLast={i === FAQ_DATA.length - 1}
+                isLast={i === getFAQData(language).length - 1}
+                sz={sz}
               />
             ))}
           </View>
@@ -205,15 +206,15 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── CONTACT FORM ── */}
         <AnimatedRow delay={200}>
-          <Text style={[styles.sectionLabel, { color: theme.subText }]}>{t(language, "contactUs")}</Text>
+          <Text style={[styles.sectionLabel, { color: theme.subText, fontSize: 11 * sz }]}>{t(language, "contactUs")}</Text>
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: 16, gap: 10 }]}>
-            <Text style={[styles.formNote, { color: theme.subText }]}>
+            <Text style={[styles.formNote, { color: theme.subText, fontSize: 12 * sz }]}>
               {t(language, "formNote")}{" "}
               <Text style={{ color: theme.accent }}>dakdekdikdokduk123@gmail.com</Text>
             </Text>
 
             <TextInput
-              style={inputStyle("subject")}
+              style={[inputStyle("subject"), { fontSize: 14 * sz }]}
               placeholder={t(language, "subjectPlaceholder")}
               placeholderTextColor={theme.subText}
               value={subject}
@@ -224,7 +225,7 @@ export default function HelpSupportScreen({ navigation }) {
             />
 
             <TextInput
-              style={[inputStyle("message"), styles.textarea]}
+              style={[inputStyle("message"), styles.textarea, { fontSize: 14 * sz }]}
               placeholder={t(language, "messagePlaceholder")}
               placeholderTextColor={theme.subText}
               value={message}
@@ -244,7 +245,7 @@ export default function HelpSupportScreen({ navigation }) {
                 activeOpacity={0.9}
               >
                 <Ionicons name="send-outline" size={16} color="#fff" />
-                <Text style={styles.sendBtnText}>{sending ? t(language, "openingMail") : t(language, "sendMessage")}</Text>
+                <Text style={[styles.sendBtnText, { fontSize: 14 * sz }]}>{sending ? t(language, "openingMail") : t(language, "sendMessage")}</Text>
               </TouchableOpacity>
             </Animated.View>
           </View>
@@ -252,7 +253,7 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── ABOUT THE APP ── */}
         <AnimatedRow delay={280}>
-          <Text style={[styles.sectionLabel, { color: theme.subText }]}>{t(language, "about")}</Text>
+          <Text style={[styles.sectionLabel, { color: theme.subText, fontSize: 11 * sz }]}>{t(language, "about")}</Text>
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {[
               { label: t(language, "aboutAppName"), value: "Montra", icon: "phone-portrait-outline", iconBg: theme.accent + "15", iconColor: theme.accent },
@@ -272,9 +273,9 @@ export default function HelpSupportScreen({ navigation }) {
                   <View style={[styles.iconCircle, { backgroundColor: row.iconBg }]}>
                     <Ionicons name={row.icon} size={15} color={row.iconColor} />
                   </View>
-                  <Text style={[styles.aboutLabel, { color: theme.subText }]}>{row.label}</Text>
+                  <Text style={[styles.aboutLabel, { color: theme.subText, fontSize: 13 * sz }]}>{row.label}</Text>
                 </View>
-                <Text style={[styles.aboutValue, { color: theme.text }]} numberOfLines={1}>
+                <Text style={[styles.aboutValue, { color: theme.text, fontSize: 13 * sz }]} numberOfLines={1}>
                   {row.value}
                 </Text>
               </View>
