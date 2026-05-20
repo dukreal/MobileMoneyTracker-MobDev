@@ -3,12 +3,11 @@ import "react-native-gesture-handler";
 
 import { Stack, SplashScreen } from "expo-router";
 import { useStore } from "../src/store/useStore";
-import { View, Animated, TouchableOpacity } from "react-native";
+import { View, Animated, TouchableOpacity, Text, StyleSheet, Modal } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import React, { useEffect, useRef } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import NetInfo from "@react-native-community/netinfo";
 import { initDB } from "../src/db/localDB";
 import { supabase } from "../src/supabase/supabaseClient";
@@ -19,45 +18,129 @@ WebBrowser.maybeCompleteAuthSession();
 // Prevent splash screen from hiding until store is ready
 SplashScreen.preventAutoHideAsync();
 
-function OfflineBanner({ visible, pendingCount }) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const [dismissed, setDismissed] = React.useState(false);
-  const dismissTimer = useRef(null);
+function OfflineModal({ visible, pendingCount, onDismiss }) {
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [countdown, setCountdown] = React.useState(15);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
-      setDismissed(false);
-      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-      dismissTimer.current = setTimeout(() => {
-        setDismissed(true);
-      }, 4000);
+      setCountdown(15);
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 60,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            onDismiss();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
     } else {
-      clearTimeout(dismissTimer.current);
-      opacity.setValue(0);
-      setDismissed(false);
+      scaleAnim.setValue(0.85);
+      opacityAnim.setValue(0);
+      setCountdown(15);
     }
-    return () => clearTimeout(dismissTimer.current);
   }, [visible]);
 
-  const handleClose = () => {
-    clearTimeout(dismissTimer.current);
-    setDismissed(true);
-  };
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
+      <View style={styles.modalOverlay}>
+        <Animated.View
+          style={[
+            styles.modalCard,
+            { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
+          ]}
+        >
+          <View style={styles.modalIconBox}>
+            <Ionicons name="cloud-offline-outline" size={32} color="#FF6B6B" />
+          </View>
+          <Text style={styles.modalTitle}>You're Offline</Text>
+          <Text style={styles.modalMessage}>
+            {pendingCount > 0
+              ? `No internet connection detected. You have ${pendingCount} pending change${pendingCount > 1 ? "s" : ""} that will sync when you're back online.`
+              : "No internet connection detected. Your data is safe — changes will sync automatically when you're back online."}
+          </Text>
+          <Text style={[styles.modalMessage, { fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: -4 }]}>
+            This modal will close in {countdown} second{countdown !== 1 ? "s" : ""}
+          </Text>
+          <TouchableOpacity style={styles.modalBtn} onPress={onDismiss} activeOpacity={0.8}>
+            <Text style={styles.modalBtnText}>Got it</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
 
-  if (!visible || dismissed) return null;
+function OnlineModal({ visible, onDismiss }) {
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [countdown, setCountdown] = React.useState(15);
+
+  useEffect(() => {
+    if (visible) {
+      setCountdown(15);
+      Animated.parallel([
+        Animated.spring(scaleAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      ]).start();
+
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            onDismiss();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      scaleAnim.setValue(0.85);
+      opacityAnim.setValue(0);
+      setCountdown(15);
+    }
+  }, [visible]);
 
   return (
-    <View style={styles.offlineBanner}>
-      <Text style={styles.offlineText}>
-        ⚡ You're offline
-        {pendingCount > 0
-          ? ` · ${pendingCount} change${pendingCount > 1 ? "s" : ""} pending`
-          : ""}
-      </Text>
-      <TouchableOpacity onPress={handleClose} style={styles.offlineClose}>
-        <Text style={styles.offlineCloseText}>✕</Text>
-      </TouchableOpacity>
-    </View>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
+      <View style={styles.modalOverlay}>
+        <Animated.View style={[styles.modalCard, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
+          <View style={[styles.modalIconBox, { backgroundColor: "rgba(46,204,113,0.12)" }]}>
+            <Ionicons name="cloud-done-outline" size={32} color="#2ECC71" />
+          </View>
+          <Text style={styles.modalTitle}>Back Online</Text>
+          <Text style={styles.modalMessage}>
+            Your connection has been restored. Any pending changes are being synced now.
+          </Text>
+          <Text style={[styles.modalMessage, { fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: -4 }]}>
+            This modal will close in {countdown} second{countdown !== 1 ? "s" : ""}
+          </Text>
+          <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#2ECC71" }]} onPress={onDismiss} activeOpacity={0.8}>
+            <Text style={styles.modalBtnText}>Great</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 
@@ -77,6 +160,8 @@ export default function RootLayout() {
   const wasOffline = useRef(false);
   const bgColor = isDarkMode ? "#121212" : "#ffffff";
   const [authReady, setAuthReady] = React.useState(false);
+  const [offlineModalDismissed, setOfflineModalDismissed] = React.useState(false);
+  const [onlineModalDismissed, setOnlineModalDismissed] = React.useState(true);
   const router = require("expo-router").useRouter();
 
   useEffect(() => {
@@ -97,6 +182,12 @@ export default function RootLayout() {
       if (online && wasOffline.current) {
         console.log("[NetInfo] Back online — syncing queue");
         syncQueue();
+        setOfflineModalDismissed(false);
+        setOnlineModalDismissed(false); // show "back online" modal
+      }
+      if (!online && wasOffline.current === false) {
+        setOfflineModalDismissed(false);
+        setOnlineModalDismissed(true); // hide online modal while offline
       }
       wasOffline.current = !online;
     });
@@ -139,12 +230,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <OfflineBanner visible={!isOnline} pendingCount={pendingCount} />
-      {/* 
-         FIX: Removing the manual background View here often solves 
-         Android layout overlap issues because NavigationContainer 
-         handles the screen height better on its own.
-      */}
+      <OfflineModal
+        visible={!isOnline && !offlineModalDismissed}
+        pendingCount={pendingCount}
+        onDismiss={() => setOfflineModalDismissed(true)}
+      />
+      <OnlineModal
+        visible={isOnline && !onlineModalDismissed}
+        onDismiss={() => setOnlineModalDismissed(true)}
+      />
       <StatusBar
         style={isDarkMode ? "light" : "dark"}
         backgroundColor={bgColor}
@@ -169,45 +263,68 @@ export default function RootLayout() {
           options={{ presentation: "transparentModal" }}
         />
       </Stack>
-      <OfflineBanner visible={!isOnline} pendingCount={pendingCount} />
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  offlineBanner: {
-    position: "absolute",
-    top: 60,
-    left: 20,
-    right: 20,
-    borderRadius: 14,
-    backgroundColor: "#FF6B6B",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    zIndex: 999,
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  offlineText: {
-    color: "#fff",
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+  // Offline Modal
+  modalOverlay: {
     flex: 1,
-    textAlign: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
   },
-  offlineClose: {
-    paddingLeft: 10,
+  modalCard: {
+    width: "100%",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "#1c1c1e",
+    padding: 24,
+    alignItems: "center",
+    gap: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
   },
-  offlineCloseText: {
-    color: "#fff",
-    fontSize: 14,
+  modalIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,107,107,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
     fontWeight: "800",
+    color: "#ffffff",
+    textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  modalMessage: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  modalBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    backgroundColor: "#FF6B6B",
+    marginTop: 6,
+  },
+  modalBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#fff",
   },
 });
