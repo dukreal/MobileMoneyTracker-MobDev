@@ -16,7 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useStore } from "../store/useStore";
-import { buildTheme, TEXT_SIZE_MULTIPLIER } from "../constants/settings";
+import { buildTheme, TEXT_SIZE_MULTIPLIER, t } from "../constants/settings";
 
 // ─── Animated Row ─────────────────────────────────────────────────────────────
 function AnimatedRow({ children, delay = 0, style }) {
@@ -76,57 +76,21 @@ function FAQItem({ question, answer, theme, isLast }) {
   );
 }
 
-const FAQ_DATA = [
-  {
-    question: "How do I add a transaction?",
-    answer:
-      "Tap the Add tab at the bottom. Enter the amount, pick a category, add an optional note or photo, then tap Save. Your balance updates instantly.",
-  },
-  {
-    question: "What is Advanced Mode?",
-    answer:
-      "Advanced Mode unlocks two extra features — Custom Date and Transaction Dots. You can enable each one separately in Settings → Advanced.",
-  },
-  {
-    question: "What is Custom Date?",
-    answer:
-      "When Custom Date is on, a date picker appears in the Add screen so you can log a transaction on any past date — useful if you forgot to record something earlier.",
-  },
-  {
-    question: "What are Transaction Dots?",
-    answer:
-      "When Transaction Dots is on, a small dot appears on dates in the calendar picker that already have transactions recorded, so you can quickly see which days have activity.",
-  },
-  {
-    question: "Is my data safe?",
-    answer:
-      "Guest accounts store data locally on your device only. Linking a Google account syncs everything securely to the cloud so you never lose it.",
-  },
-  {
-    question: "How do I switch currencies?",
-    answer:
-      "Currency switching is coming soon! We're working on full multi-currency support. Stay tuned for updates in the next release.",
-  },
-  {
-    question: "Can I export my transactions?",
-    answer:
-      "Export is coming soon! We're working on CSV and PDF export. Stay tuned for updates in the next release.",
-  },
-  {
-    question: "How do I delete a transaction?",
-    answer:
-      "Tap any transaction to open the Details screen, then tap the Delete button. You'll be asked to confirm before it's removed.",
-  },
-  {
-    question: "Does Montra work offline?",
-    answer:
-      "Yes! Montra works fully offline. Any transactions you add while offline are saved locally and automatically synced to the cloud when your connection is restored.",
-  },
+const getFAQData = (language) => [
+  { question: t(language, "faq1Q"), answer: t(language, "faq1A") },
+  { question: t(language, "faq2Q"), answer: t(language, "faq2A") },
+  { question: t(language, "faq3Q"), answer: t(language, "faq3A") },
+  { question: t(language, "faq4Q"), answer: t(language, "faq4A") },
+  { question: t(language, "faq5Q"), answer: t(language, "faq5A") },
+  { question: t(language, "faq6Q"), answer: t(language, "faq6A") },
+  { question: t(language, "faq7Q"), answer: t(language, "faq7A") },
+  { question: t(language, "faq8Q"), answer: t(language, "faq8A") },
+  { question: t(language, "faq9Q"), answer: t(language, "faq9A") },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function HelpSupportScreen({ navigation }) {
-  const { isDarkMode, colorTheme, textSize, session } = useStore();
+  const { isDarkMode, colorTheme, textSize, language, session } = useStore();
   const sz = TEXT_SIZE_MULTIPLIER[textSize] ?? 1.0;
   const router = useRouter();
 
@@ -141,7 +105,7 @@ export default function HelpSupportScreen({ navigation }) {
 
   const handleSend = async () => {
     if (!subject.trim() || !message.trim()) {
-      Alert.alert("Missing Info", "Please fill in both the subject and message.");
+      Alert.alert(t(language, "missingInfo"), t(language, "missingInfoMsg"));
       return;
     }
 
@@ -165,10 +129,10 @@ export default function HelpSupportScreen({ navigation }) {
         setSubject("");
         setMessage("");
       } else {
-        Alert.alert("No Email App", "We couldn't find a mail app. Please email us at support@moneytracker.app");
+        Alert.alert(t(language, "noEmailApp"), t(language, "noEmailAppMsg"));
       }
     } catch (e) {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert("Error", t(language, "errorGeneric"));
     } finally {
       setSending(false);
     }
@@ -198,7 +162,7 @@ export default function HelpSupportScreen({ navigation }) {
           >
             <Ionicons name="arrow-back" size={18} color={theme.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Help & Support</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{t(language, "helpSupportTitle")}</Text>
           <View style={{ width: 36 }} />
         </View>
       </AnimatedRow>
@@ -215,9 +179,9 @@ export default function HelpSupportScreen({ navigation }) {
               <Ionicons name="headset-outline" size={28} color={theme.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.heroTitle, { color: theme.text }]}>We're here to help</Text>
+              <Text style={[styles.heroTitle, { color: theme.text }]}>{t(language, "hereToHelp")}</Text>
               <Text style={[styles.heroSub, { color: theme.subText }]}>
-                Browse the FAQ or drop us an email — we reply within 24 hours.
+                {t(language, "heroSub")}
               </Text>
             </View>
           </View>
@@ -225,9 +189,9 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── FAQ ── */}
         <AnimatedRow delay={120}>
-          <Text style={[styles.sectionLabel, { color: theme.subText }]}>Frequently Asked</Text>
+          <Text style={[styles.sectionLabel, { color: theme.subText }]}>{t(language, "frequentlyAsked")}</Text>
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            {FAQ_DATA.map((item, i) => (
+            {getFAQData(language).map((item, i) => (
               <FAQItem
                 key={i}
                 question={item.question}
@@ -241,16 +205,16 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── CONTACT FORM ── */}
         <AnimatedRow delay={200}>
-          <Text style={[styles.sectionLabel, { color: theme.subText }]}>Contact Us</Text>
+          <Text style={[styles.sectionLabel, { color: theme.subText }]}>{t(language, "contactUs")}</Text>
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: 16, gap: 10 }]}>
             <Text style={[styles.formNote, { color: theme.subText }]}>
-              Opens your mail app with a pre-filled message to{" "}
+              {t(language, "formNote")}{" "}
               <Text style={{ color: theme.accent }}>dakdekdikdokduk123@gmail.com</Text>
             </Text>
 
             <TextInput
               style={inputStyle("subject")}
-              placeholder="Subject"
+              placeholder={t(language, "subjectPlaceholder")}
               placeholderTextColor={theme.subText}
               value={subject}
               onChangeText={setSubject}
@@ -261,7 +225,7 @@ export default function HelpSupportScreen({ navigation }) {
 
             <TextInput
               style={[inputStyle("message"), styles.textarea]}
-              placeholder="Describe your issue or question..."
+              placeholder={t(language, "messagePlaceholder")}
               placeholderTextColor={theme.subText}
               value={message}
               onChangeText={setMessage}
@@ -280,7 +244,7 @@ export default function HelpSupportScreen({ navigation }) {
                 activeOpacity={0.9}
               >
                 <Ionicons name="send-outline" size={16} color="#fff" />
-                <Text style={styles.sendBtnText}>{sending ? "Opening mail…" : "Send Message"}</Text>
+                <Text style={styles.sendBtnText}>{sending ? t(language, "openingMail") : t(language, "sendMessage")}</Text>
               </TouchableOpacity>
             </Animated.View>
           </View>
@@ -288,14 +252,14 @@ export default function HelpSupportScreen({ navigation }) {
 
         {/* ── ABOUT THE APP ── */}
         <AnimatedRow delay={280}>
-          <Text style={[styles.sectionLabel, { color: theme.subText }]}>About</Text>
+          <Text style={[styles.sectionLabel, { color: theme.subText }]}>{t(language, "about")}</Text>
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {[
-              { label: "App Name", value: "Montra", icon: "phone-portrait-outline", iconBg: theme.accent + "15", iconColor: theme.accent },
-              { label: "Version", value: "1.0.0", icon: "code-slash-outline", iconBg: "#7C3AED15", iconColor: "#7C3AED" },
-              { label: "Developer", value: "dukdakdok", icon: "person-outline", iconBg: theme.success + "15", iconColor: theme.success },
-              { label: "Support Email", value: "dakdekdikdokduk123@gmail.com", icon: "mail-outline", iconBg: theme.warning + "15", iconColor: theme.warning },
-              { label: "Platform", value: "Android", icon: "logo-android", iconBg: theme.success + "15", iconColor: theme.success },
+              { label: t(language, "aboutAppName"), value: "Montra", icon: "phone-portrait-outline", iconBg: theme.accent + "15", iconColor: theme.accent },
+              { label: t(language, "aboutVersion"), value: "1.0.0", icon: "code-slash-outline", iconBg: "#7C3AED15", iconColor: "#7C3AED" },
+              { label: t(language, "aboutDeveloper"), value: "dukdakdok", icon: "person-outline", iconBg: theme.success + "15", iconColor: theme.success },
+              { label: t(language, "aboutEmail"), value: "dakdekdikdokduk123@gmail.com", icon: "mail-outline", iconBg: theme.warning + "15", iconColor: theme.warning },
+              { label: t(language, "aboutPlatform"), value: "Android", icon: "logo-android", iconBg: theme.success + "15", iconColor: theme.success },
             ].map((row, i, arr) => (
               <View
                 key={i}

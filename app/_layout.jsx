@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import React, { useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { t } from "../src/constants/settings";
 import NetInfo from "@react-native-community/netinfo";
 import { initDB } from "../src/db/localDB";
 import { supabase } from "../src/supabase/supabaseClient";
@@ -18,7 +19,7 @@ WebBrowser.maybeCompleteAuthSession();
 // Prevent splash screen from hiding until store is ready
 SplashScreen.preventAutoHideAsync();
 
-function OfflineModal({ visible, pendingCount, onDismiss }) {
+function OfflineModal({ visible, pendingCount, onDismiss, language }) {
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [countdown, setCountdown] = React.useState(15);
@@ -71,17 +72,21 @@ function OfflineModal({ visible, pendingCount, onDismiss }) {
           <View style={styles.modalIconBox}>
             <Ionicons name="cloud-offline-outline" size={32} color="#FF6B6B" />
           </View>
-          <Text style={styles.modalTitle}>You're Offline</Text>
+          <Text style={styles.modalTitle}>{t(language, "offlineTitle")}</Text>
           <Text style={styles.modalMessage}>
             {pendingCount > 0
-              ? `No internet connection detected. You have ${pendingCount} pending change${pendingCount > 1 ? "s" : ""} that will sync when you're back online.`
-              : "No internet connection detected. Your data is safe — changes will sync automatically when you're back online."}
+              ? t(language, "offlineMsgPending")
+                  .replace("{count}", pendingCount)
+                  .replace("{s}", pendingCount > 1 ? (language === "filipino" ? "" : "s") : "")
+              : t(language, "offlineMsg")}
           </Text>
           <Text style={[styles.modalMessage, { fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: -4 }]}>
-            This modal will close in {countdown} second{countdown !== 1 ? "s" : ""}
+            {t(language, "modalClosesIn")
+              .replace("{count}", countdown)
+              .replace("{s}", countdown !== 1 ? (language === "filipino" ? "" : "s") : "")}
           </Text>
           <TouchableOpacity style={styles.modalBtn} onPress={onDismiss} activeOpacity={0.8}>
-            <Text style={styles.modalBtnText}>Got it</Text>
+            <Text style={styles.modalBtnText}>{t(language, "gotIt")}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -89,7 +94,7 @@ function OfflineModal({ visible, pendingCount, onDismiss }) {
   );
 }
 
-function OnlineModal({ visible, onDismiss }) {
+function OnlineModal({ visible, onDismiss, language }) {
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [countdown, setCountdown] = React.useState(15);
@@ -128,15 +133,17 @@ function OnlineModal({ visible, onDismiss }) {
           <View style={[styles.modalIconBox, { backgroundColor: "rgba(46,204,113,0.12)" }]}>
             <Ionicons name="cloud-done-outline" size={32} color="#2ECC71" />
           </View>
-          <Text style={styles.modalTitle}>Back Online</Text>
+          <Text style={styles.modalTitle}>{t(language, "onlineTitle")}</Text>
           <Text style={styles.modalMessage}>
-            Your connection has been restored. Any pending changes are being synced now.
+            {t(language, "onlineMsg")}
           </Text>
           <Text style={[styles.modalMessage, { fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: -4 }]}>
-            This modal will close in {countdown} second{countdown !== 1 ? "s" : ""}
+            {t(language, "modalClosesIn")
+              .replace("{count}", countdown)
+              .replace("{s}", countdown !== 1 ? (language === "filipino" ? "" : "s") : "")}
           </Text>
           <TouchableOpacity style={[styles.modalBtn, { backgroundColor: "#2ECC71" }]} onPress={onDismiss} activeOpacity={0.8}>
-            <Text style={styles.modalBtnText}>Great</Text>
+            <Text style={styles.modalBtnText}>{t(language, "great")}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -156,6 +163,7 @@ export default function RootLayout() {
     syncQueue,
     refreshPendingCount,
     pendingCount,
+    language,
   } = useStore();
   const wasOffline = useRef(false);
   const bgColor = isDarkMode ? "#121212" : "#ffffff";
@@ -234,10 +242,12 @@ export default function RootLayout() {
         visible={!isOnline && !offlineModalDismissed}
         pendingCount={pendingCount}
         onDismiss={() => setOfflineModalDismissed(true)}
+        language={language}
       />
       <OnlineModal
         visible={isOnline && !onlineModalDismissed}
         onDismiss={() => setOnlineModalDismissed(true)}
+        language={language}
       />
       <StatusBar
         style={isDarkMode ? "light" : "dark"}
