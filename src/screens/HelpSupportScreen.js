@@ -52,7 +52,7 @@ function FAQItem({ question, answer, theme, isLast }) {
     setOpen(!open);
   };
 
-  const maxHeight = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] });
+  const maxHeight = anim.interpolate({ inputRange: [0, 1], outputRange: [0, 200] });
   const rotateZ = rotate.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "45deg"] });
 
   return (
@@ -80,7 +80,22 @@ const FAQ_DATA = [
   {
     question: "How do I add a transaction?",
     answer:
-      "Tap the '+' button on the home screen or the Add tab. Fill in the amount, category, and date, then hit Save. Your balance updates instantly.",
+      "Tap the Add tab at the bottom. Enter the amount, pick a category, add an optional note or photo, then tap Save. Your balance updates instantly.",
+  },
+  {
+    question: "What is Advanced Mode?",
+    answer:
+      "Advanced Mode unlocks two extra features — Custom Date and Transaction Dots. You can enable each one separately in Settings → Advanced.",
+  },
+  {
+    question: "What is Custom Date?",
+    answer:
+      "When Custom Date is on, a date picker appears in the Add screen so you can log a transaction on any past date — useful if you forgot to record something earlier.",
+  },
+  {
+    question: "What are Transaction Dots?",
+    answer:
+      "When Transaction Dots is on, a small dot appears on dates in the calendar picker that already have transactions recorded, so you can quickly see which days have activity.",
   },
   {
     question: "Is my data safe?",
@@ -90,7 +105,7 @@ const FAQ_DATA = [
   {
     question: "How do I switch currencies?",
     answer:
-      "Go to Profile → Preferences → Currency and tap your preferred symbol. All amounts display in your chosen currency right away.",
+      "Currency switching is coming soon! We're working on full multi-currency support. Stay tuned for updates in the next release.",
   },
   {
     question: "Can I export my transactions?",
@@ -100,7 +115,12 @@ const FAQ_DATA = [
   {
     question: "How do I delete a transaction?",
     answer:
-      "Swipe left on any transaction in the list to reveal the Delete option, or tap the transaction to open it and select Delete from the menu.",
+      "Tap any transaction to open the Details screen, then tap the Delete button. You'll be asked to confirm before it's removed.",
+  },
+  {
+    question: "Does Montra work offline?",
+    answer:
+      "Yes! Montra works fully offline. Any transactions you add while offline are saved locally and automatically synced to the cloud when your connection is restored.",
   },
 ];
 

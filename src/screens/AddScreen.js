@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   Image,
   ActivityIndicator,
   Modal,
@@ -170,12 +169,30 @@ export default function AddScreen() {
     });
   };
 
-  const [images, setImages] = useState([]);
+ const [images, setImages] = useState([]);
   const [location, setLocation] = useState(null);
   const [fetchingLoc, setFetchingLoc] = useState(false);
   const [locationOption, setLocationOption] = useState(null);
   const [locationModalVisible, setLocationModalVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+
+  // ─── Custom Modal ───────────────────────────────────────────────
+  const [customModal, setCustomModal] = useState({
+    visible: false,
+    icon: "alert-circle-outline",
+    iconColor: null,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+
+  const showModal = (icon, iconColor, title, message, buttons) => {
+    setCustomModal({ visible: true, icon, iconColor, title, message, buttons });
+  };
+
+  const hideModal = () => {
+    setCustomModal((prev) => ({ ...prev, visible: false }));
+  };
 
   const theme = {
     ...buildTheme(isDarkMode, colorTheme),
@@ -222,7 +239,9 @@ export default function AddScreen() {
         name: placeName,
       });
     } catch {
-      Alert.alert("Location Error", "Could not fetch your location.");
+      showModal("location-outline", theme.danger, "Location Error", "Could not fetch your location. Please try again.", [
+        { label: "OK", onPress: hideModal, primary: true },
+      ]);
       setLocationOption(null);
     } finally {
       setFetchingLoc(false);
@@ -230,34 +249,39 @@ export default function AddScreen() {
   };
 
   const pickImage = async () => {
-    if (images.length >= 3)
-      return Alert.alert("Limit Reached", "Max 3 images.");
-    Alert.alert("Add Photo", "Choose a source", [
+    if (images.length >= 3) {
+      showModal("images-outline", theme.warning, "Limit Reached", "You can only attach up to 3 images per transaction.", [
+        { label: "OK", onPress: hideModal, primary: true },
+      ]);
+      return;
+    }
+    showModal("camera-outline", theme.accent, "Add Photo", "Choose where to get your photo.", [
       {
-        text: "Camera",
+        label: "Camera",
+        primary: false,
         onPress: async () => {
+          hideModal();
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
-          if (status !== "granted")
-            return Alert.alert("Permission Denied", "Allow camera access.");
-          let result = await ImagePicker.launchCameraAsync({
-            allowsEditing: false,
-            quality: 0.5,
-          });
+          if (status !== "granted") {
+            showModal("alert-circle-outline", theme.danger, "Permission Denied", "Allow camera access in your device settings.", [
+              { label: "OK", onPress: hideModal, primary: true },
+            ]);
+            return;
+          }
+          let result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.5 });
           if (!result.canceled) setPreviewImage(result.assets[0].uri);
         },
       },
       {
-        text: "Photos",
+        label: "Photos",
+        primary: false,
         onPress: async () => {
-          let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: false,
-            quality: 0.5,
-          });
+          hideModal();
+          let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: false, quality: 0.5 });
           if (!result.canceled) setPreviewImage(result.assets[0].uri);
         },
       },
-      { text: "Cancel", style: "cancel" },
+      { label: "Cancel", onPress: hideModal, primary: false },
     ]);
   };
 
@@ -284,10 +308,18 @@ export default function AddScreen() {
 
   const handleSave = async () => {
     const parsedAmount = parseFloat(amount);
-    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0)
-      return Alert.alert("Error", "Please enter a valid amount");
-    if (!selectedCat || !selectedSub)
-      return Alert.alert("Error", "Please select a category");
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      showModal("alert-circle-outline", theme.danger, "Invalid Amount", "Please enter a valid amount greater than 0.", [
+        { label: "OK", onPress: hideModal, primary: true },
+      ]);
+      return;
+    }
+    if (!selectedCat || !selectedSub) {
+      showModal("grid-outline", theme.warning, "No Category", "Please select a category before saving.", [
+        { label: "OK", onPress: hideModal, primary: true },
+      ]);
+      return;
+    }
     setLoading(true);
     try {
       let userId = user?.id;
@@ -301,7 +333,12 @@ export default function AddScreen() {
         const { data: anonData } = await supabase.auth.signInAnonymously();
         userId = anonData?.user?.id;
       }
-      if (!userId) return Alert.alert("Error", "Could not start a session.");
+      if (!userId) {
+        showModal("alert-circle-outline", theme.danger, "Session Error", "Could not start a session. Please try again.", [
+          { label: "OK", onPress: hideModal, primary: true },
+        ]);
+        return;
+      }
       const today = new Date();
       const payload = {
         user_id: userId,
@@ -340,16 +377,18 @@ export default function AddScreen() {
       }
 
       resetFields();
-      Alert.alert(
+      showModal(
+        isOnline ? "checkmark-circle-outline" : "cloud-offline-outline",
+        isOnline ? theme.success : theme.warning,
         isOnline ? "Saved!" : "Saved Offline",
-        isOnline
-          ? "Transaction added."
-          : "Saved locally. Will sync when back online.",
-        [{ text: "OK", onPress: () => router.replace({ pathname: "/(tabs)", params: { jumpToDate: selectedDate.toISOString() } }) }]
+        isOnline ? "Transaction added successfully." : "Saved locally. Will sync when back online.",
+        [{ label: "OK", onPress: () => { hideModal(); router.replace({ pathname: "/(tabs)", params: { jumpToDate: selectedDate.toISOString() } }); }, primary: true }]
       );
     } catch (err) {
       console.log("Save error:", JSON.stringify(err));
-      Alert.alert("Save Failed", err.message);
+      showModal("close-circle-outline", theme.danger, "Save Failed", err.message, [
+        { label: "OK", onPress: hideModal, primary: true },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -1085,6 +1124,37 @@ export default function AddScreen() {
         accentColor={accentColor}
       />
 
+      {/* ── CUSTOM MODAL ── */}
+      <Modal visible={customModal.visible} transparent animationType="fade">
+        <View style={styles.customModalOverlay}>
+          <Animated.View style={[styles.customModalCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.customModalIcon, { backgroundColor: (customModal.iconColor ?? theme.accent) + "18" }]}>
+              <Ionicons name={customModal.icon} size={30} color={customModal.iconColor ?? theme.accent} />
+            </View>
+            <Text style={[styles.customModalTitle, { color: theme.text }]}>{customModal.title}</Text>
+            <Text style={[styles.customModalMessage, { color: theme.subText }]}>{customModal.message}</Text>
+            <View style={styles.customModalButtons}>
+              {customModal.buttons.map((btn, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={btn.onPress}
+                  style={[
+                    styles.customModalBtn,
+                    btn.primary
+                      ? { backgroundColor: customModal.iconColor ?? theme.accent }
+                      : { backgroundColor: theme.surfaceAlt },
+                  ]}
+                >
+                  <Text style={[styles.customModalBtnText, { color: btn.primary ? "#fff" : theme.text }]}>
+                    {btn.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
       {/* ── IMAGE PREVIEW MODAL ── */}
       <Modal visible={!!previewImage} transparent animationType="fade">
         <View
@@ -1355,4 +1425,56 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sheetConfirmText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+
+  // ── Custom Modal ──
+  customModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+  },
+  customModalCard: {
+    width: "100%",
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: "center",
+    gap: 10,
+  },
+  customModalIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  customModalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  customModalMessage: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  customModalButtons: {
+    width: "100%",
+    gap: 8,
+    marginTop: 6,
+  },
+  customModalBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  customModalBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
 });
