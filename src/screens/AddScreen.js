@@ -413,7 +413,7 @@ export default function AddScreen() {
       </Animated.View>
 
       {/* ── AMOUNT HERO CARD ── */}
-      <AnimatedRow delay={60}>
+      <AnimatedRow delay={60} style={{ paddingHorizontal: 20, paddingTop: 8 }}>
         <View
           style={[
             styles.card,
@@ -1165,7 +1165,7 @@ const styles = StyleSheet.create({
   // Scroll
   scroll: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 10,
     gap: 8,
   },
 
