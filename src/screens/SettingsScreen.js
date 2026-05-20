@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   Pressable,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -102,7 +103,58 @@ export default function SettingsScreen() {
     toggleAdvancedMode,
     showTransactionDots,
     toggleTransactionDots,
+    advancedModePopupSeen,
+    setAdvancedModePopupSeen,
   } = useStore();
+
+  const [showAdvancedPopup, setShowAdvancedPopup] = useState(false);
+  const [countdown, setCountdown] = useState(15);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [popupFeature, setPopupFeature] = useState("customDate");
+  const countdownRef = useRef(null);
+
+  const startPopup = (feature, onConfirm) => {
+    setPopupFeature(feature);
+    setCountdown(15);
+    setDontShowAgain(false);
+    setShowAdvancedPopup(true);
+    popupConfirmRef.current = onConfirm;
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current);
+          setShowAdvancedPopup(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const popupConfirmRef = useRef(null);
+
+  const handleAdvancedModePress = () => {
+    if (!advancedMode && !advancedModePopupSeen) {
+      startPopup("customDate", () => toggleAdvancedMode());
+    } else {
+      toggleAdvancedMode();
+    }
+  };
+
+  const handleTransactionDotsPress = () => {
+    if (!showTransactionDots && !advancedModePopupSeen) {
+      startPopup("transactionDots", () => toggleTransactionDots());
+    } else {
+      toggleTransactionDots();
+    }
+  };
+
+  const handlePopupConfirm = () => {
+    if (dontShowAgain) setAdvancedModePopupSeen(true);
+    clearInterval(countdownRef.current);
+    setShowAdvancedPopup(false);
+    popupConfirmRef.current?.();
+  };
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -229,20 +281,20 @@ export default function SettingsScreen() {
 
         {/* ── ADVANCED ── */}
         <AnimatedRow delay={100}>
-          <SectionHeader label="Advanced Mode" theme={theme} sz={sz} />
+          <SectionHeader label={t(language, "advanced")} theme={theme} sz={sz} />
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <SettingRow
               icon="calendar-outline"
               iconBg="#5AC8FA15"
               iconColor="#5AC8FA"
-              label="Custom Date"
-              subLabel="Pick any past date when adding"
+              label={t(language, "customDate")}
+              subLabel={t(language, "customDateSub")}
               theme={theme}
               sz={sz}
               borderBottom
               right={
                 <TouchableOpacity
-                  onPress={toggleAdvancedMode}
+                  onPress={handleAdvancedModePress}
                   style={[
                     styles.switchTrack,
                     { backgroundColor: advancedMode ? theme.accent : (isDarkMode ? "#3a3a3a" : "#d1d1d6") },
@@ -261,13 +313,13 @@ export default function SettingsScreen() {
               icon="ellipse"
               iconBg="#FF9F4315"
               iconColor="#FF9F43"
-              label="Transaction Dots"
-              subLabel="Show dots on dates with transactions"
+              label={t(language, "transactionDots")}
+              subLabel={t(language, "transactionDotsSub")}
               theme={theme}
               sz={sz}
               right={
                 <TouchableOpacity
-                  onPress={toggleTransactionDots}
+                  onPress={handleTransactionDotsPress}
                   style={[
                     styles.switchTrack,
                     { backgroundColor: showTransactionDots ? theme.accent : (isDarkMode ? "#3a3a3a" : "#d1d1d6") },
@@ -311,6 +363,63 @@ export default function SettingsScreen() {
         </AnimatedRow>
 
       </ScrollView>
+    {/* ── ADVANCED MODE POPUP ── */}
+      <Modal visible={showAdvancedPopup} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <View style={[styles.popupCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+
+            {/* Icon */}
+            <View style={[styles.popupIconCircle, { backgroundColor: theme.accent + "20" }]}>
+              <Ionicons
+                name={popupFeature === "customDate" ? "calendar-outline" : "ellipse"}
+                size={28}
+                color={theme.accent}
+              />
+            </View>
+
+            {/* Title */}
+            <Text style={[styles.popupTitle, { color: theme.text }]}>
+              {popupFeature === "customDate" ? t(language, "enableCustomDate") : t(language, "enableDots")}
+            </Text>
+
+            {/* Description */}
+            <Text style={[styles.popupBody, { color: theme.subText }]}>
+              {popupFeature === "customDate"
+                ? t(language, "customDateDesc")
+                : t(language, "transactionDotsDesc")}
+            </Text>
+
+            {/* Auto-close timer */}
+            <View style={[styles.popupTimerBadge, { backgroundColor: theme.surfaceAlt }]}>
+              <Ionicons name="time-outline" size={13} color={theme.subText} />
+              <Text style={[styles.popupTimer, { color: theme.subText }]}>
+                {t(language, "closesIn")} {countdown}s
+              </Text>
+            </View>
+
+            {/* Don't show again — centered */}
+            <TouchableOpacity
+              onPress={() => setDontShowAgain((v) => !v)}
+              style={styles.popupCheckRow}
+            >
+              <View style={[styles.popupCheckbox, { borderColor: theme.accent, backgroundColor: dontShowAgain ? theme.accent : "transparent" }]}>
+                {dontShowAgain && <Ionicons name="checkmark" size={12} color="#fff" />}
+              </View>
+              <Text style={[styles.popupCheckLabel, { color: theme.text }]}>{t(language, "dontShowAgain")}</Text>
+            </TouchableOpacity>
+
+            {/* OK Button */}
+            <TouchableOpacity
+              onPress={handlePopupConfirm}
+              style={[styles.popupBtn, { backgroundColor: theme.accent }]}
+            >
+              <Text style={[styles.popupBtnText, { color: "#fff" }]}>{t(language, "okEnable")}</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -401,5 +510,84 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 3,
     elevation: 2,
+  },
+
+  // Popup
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+  },
+  popupCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 24,
+    width: "100%",
+    alignItems: "center",
+    gap: 12,
+  },
+  popupIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  popupTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    textAlign: "center",
+    letterSpacing: -0.4,
+  },
+  popupBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  popupTimerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  popupTimer: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  popupCheckRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 4,
+    alignSelf: "center",
+  },
+  popupCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popupCheckLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  popupBtn: {
+    width: "100%",
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  popupBtnText: {
+    fontSize: 16,
+    fontWeight: "700",
   },
 });

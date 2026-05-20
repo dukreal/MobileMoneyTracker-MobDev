@@ -36,6 +36,8 @@ export const useStore = create(
       colorTheme: "green",
       advancedMode: false,
       showTransactionDots: false,
+      advancedModePopupSeen: false,
+      setAdvancedModePopupSeen: (val) => set({ advancedModePopupSeen: val }),
       toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
       toggleAdvancedMode: () => set((state) => ({ advancedMode: !state.advancedMode })),
       toggleTransactionDots: () => set((state) => ({ showTransactionDots: !state.showTransactionDots })),
