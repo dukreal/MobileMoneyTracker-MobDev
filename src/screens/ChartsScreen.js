@@ -118,9 +118,16 @@ export default function ChartsScreen() {
     }, [fetchTransactions]),
   );
 
+  const getEffectiveDate = (tx) => {
+    const raw = tx.created_at;
+    // Parse as local date to avoid UTC midnight timezone shift
+    const d = new Date(raw);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  };
+
   const filteredTxs = useMemo(() => {
     return transactions.filter((t) => {
-      const d = new Date(t.created_at);
+      const d = getEffectiveDate(t);
       if (viewMode === "week")
         return isSameWeek(d, selectedWeek, { weekStartsOn: 0 });
       if (viewMode === "month") return isSameMonth(d, selectedMonth);
@@ -170,7 +177,7 @@ export default function ChartsScreen() {
       const monthlyData = [];
       MONTH_COLORS.forEach((color, i) => {
         const monthTxs = sourceTxs.filter(
-          (t) => new Date(t.created_at).getMonth() === i,
+          (t) => getEffectiveDate(t).getMonth() === i,
         );
         const total = monthTxs.reduce((s, t) => s + Number(t.amount), 0);
         if (total > 0) {
@@ -282,8 +289,8 @@ export default function ChartsScreen() {
       const monthIndex = MONTHS_LABEL.indexOf(selectedSlice.label);
       if (monthIndex === -1) return [];
       return sourceTxs
-        .filter((t) => new Date(t.created_at).getMonth() === monthIndex)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        .filter((t) => getEffectiveDate(t).getMonth() === monthIndex)
+        .sort((a, b) => getEffectiveDate(b) - getEffectiveDate(a));
     }
     if (selectedSlice.label === "Others") {
       const top5Labels = [...pieData]
