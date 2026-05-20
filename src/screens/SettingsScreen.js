@@ -100,6 +100,8 @@ export default function SettingsScreen() {
     setLanguage,
     advancedMode,
     toggleAdvancedMode,
+    showTransactionDots,
+    toggleTransactionDots,
   } = useStore();
 
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -227,16 +229,17 @@ export default function SettingsScreen() {
 
         {/* ── ADVANCED ── */}
         <AnimatedRow delay={100}>
-          <SectionHeader label="Advanced" theme={theme} sz={sz} />
+          <SectionHeader label="Advanced Mode" theme={theme} sz={sz} />
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <SettingRow
               icon="calendar-outline"
               iconBg="#5AC8FA15"
               iconColor="#5AC8FA"
-              label="Advanced Mode"
-              subLabel="Choose custom date when adding"
+              label="Custom Date"
+              subLabel="Pick any past date when adding"
               theme={theme}
               sz={sz}
+              borderBottom
               right={
                 <TouchableOpacity
                   onPress={toggleAdvancedMode}
@@ -249,6 +252,31 @@ export default function SettingsScreen() {
                     style={[
                       styles.switchThumb,
                       { transform: [{ translateX: advancedMode ? 22 : 2 }] },
+                    ]}
+                  />
+                </TouchableOpacity>
+              }
+            />
+            <SettingRow
+              icon="ellipse"
+              iconBg="#FF9F4315"
+              iconColor="#FF9F43"
+              label="Transaction Dots"
+              subLabel="Show dots on dates with transactions"
+              theme={theme}
+              sz={sz}
+              right={
+                <TouchableOpacity
+                  onPress={toggleTransactionDots}
+                  style={[
+                    styles.switchTrack,
+                    { backgroundColor: showTransactionDots ? theme.accent : (isDarkMode ? "#3a3a3a" : "#d1d1d6") },
+                  ]}
+                >
+                  <Animated.View
+                    style={[
+                      styles.switchThumb,
+                      { transform: [{ translateX: showTransactionDots ? 22 : 2 }] },
                     ]}
                   />
                 </TouchableOpacity>

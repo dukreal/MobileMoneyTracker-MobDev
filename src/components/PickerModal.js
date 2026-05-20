@@ -58,6 +58,7 @@ export default function PickerModal({
   onSelect,
   isDarkMode,
   accentColor = "#0081db",
+  transactions = [],
 }) {
   const insets = useSafeAreaInsets();
   const activeBlue = accentColor;
@@ -328,17 +329,32 @@ export default function PickerModal({
                 }}
               >
                 {inMonth && (
-                  <Text
-                    style={{
-                      color: isSelected
-                        ? "#fff"
-                        : isFutureDay
-                          ? theme.subText
-                          : theme.text,
-                    }}
-                  >
-                    {format(day, "d")}
-                  </Text>
+                  <>
+                    <Text
+                      style={{
+                        color: isSelected
+                          ? "#fff"
+                          : isFutureDay
+                            ? theme.subText
+                            : theme.text,
+                      }}
+                    >
+                      {format(day, "d")}
+                    </Text>
+                    {transactions.some((tx) =>
+                      isSameDay(new Date(tx.created_at), day)
+                    ) && (
+                      <View
+                        style={{
+                          width: 5,
+                          height: 5,
+                          borderRadius: 3,
+                          backgroundColor: isSelected ? "#fff" : activeBlue,
+                          marginTop: 3,
+                        }}
+                      />
+                    )}
+                  </>
                 )}
               </TouchableOpacity>
             );
@@ -485,6 +501,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
+    position: "relative",
+    overflow: "visible",
   },
   doneBtn: {
     alignItems: "center",

@@ -104,17 +104,7 @@ function SectionHeader({ label, theme }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function AddScreen() {
-  const {
-    isDarkMode,
-    user,
-    currency,
-    colorTheme,
-    textSize,
-    language,
-    isOnline,
-    refreshPendingCount,
-    advancedMode,
-  } = useStore();
+ const { isDarkMode, colorTheme, textSize, language, currency, user, isOnline, advancedMode, showTransactionDots, refreshPendingCount, transactions } = useStore();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [inputKey, setInputKey] = useState(0);
@@ -1082,6 +1072,7 @@ export default function AddScreen() {
       {/* ── DATE PICKER MODAL ── */}
       <PickerModal
         visible={showDatePicker}
+        transactions={showTransactionDots ? transactions : []}
         onClose={() => setShowDatePicker(false)}
         mode="date"
         currentValue={selectedDate}

@@ -124,6 +124,8 @@ export default function HomeScreen() {
     user,
     session,
     isOnline,
+    showTransactionDots,
+    transactions: storeTransactions,
   } = useStore();
   const theme = buildTheme(isDarkMode, colorTheme);
   const ts = TEXT_SIZE_MULTIPLIER[textSize] ?? 1;
@@ -475,6 +477,7 @@ export default function HomeScreen() {
         }}
         isDarkMode={isDarkMode}
         accentColor={theme.accent}
+        transactions={showTransactionDots ? transactions : []}
       />
     </View>
   );
